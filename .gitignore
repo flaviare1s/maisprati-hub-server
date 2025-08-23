@@ -1,0 +1,54 @@
+#------------------------
+# Configs do usuário
+#------------------------
+.env
+.bashrc
+HELP.md
+
+#------------------------
+# Build e dependências
+#------------------------
+target/
+build/
+.mvn/wrapper/maven-wrapper.jar
+
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ------------------------
+# Docker
+# ------------------------
+docker-compose.override.yml
+*.log
+
+# ------------------------
+# Spring Tool Suite (STS)
+# ------------------------
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+#------------------------
+# IDEs
+#------------------------
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
