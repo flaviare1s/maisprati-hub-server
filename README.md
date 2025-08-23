@@ -5,7 +5,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green?logo=mongodb)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Docker-3.8-blue?logo=docker)](https://www.docker.com/)
 
-Bem-vindo ao backend do **+PraTi Hub** 🎓  
+> Bem-vindo ao backend do **+PraTi Hub** 🎓  
 Este projeto é uma **API RESTful** construída com **Java + Spring Boot**, usando **MongoDB** como banco de dados.  
 Conta com suporte a **Docker** para rodar o banco localmente, perfis de configuração (`dev` e `prod`) e senhas seguras com **hash BCrypt**.
 ---
