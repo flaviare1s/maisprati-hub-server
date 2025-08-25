@@ -26,6 +26,11 @@ Conta com suporte a **Docker** para rodar o banco localmente, perfis de configur
 > 💡 Observação: no Windows/Mac pode ser mais prático usar o **Docker Desktop**.  
 No Linux basta ter o Docker Engine instalado.
 
+### ⚠️ Lombok no VS Code
+- O Lombok já está configurado no `pom.xml`, então o build funciona em qualquer máquina.
+- Porém, no **VS Code** é necessário instalar a extensão [Lombok Annotations Support](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-lombok) para evitar erros falsos no editor.
+- Sem essa extensão, o projeto compila normalmente, mas o VS Code pode mostrar erros em métodos gerados pelo Lombok (ex.: `getters`, `setters`, `@Builder`).
+
 ---
 
 ## 🗂 Estrutura do Projeto
