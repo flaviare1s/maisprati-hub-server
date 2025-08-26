@@ -1,7 +1,6 @@
 package com.maisprati.hub.model.enums;
 
-public enum Role {
+public enum UserType {
 	ADMIN,
-	PROFESSOR,
 	STUDENT
 }
