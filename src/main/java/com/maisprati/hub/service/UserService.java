@@ -1,7 +1,7 @@
 package com.maisprati.hub.service;
 
 import com.maisprati.hub.model.User;
-import com.maisprati.hub.model.enums.Role;
+import com.maisprati.hub.model.enums.UserType;
 import com.maisprati.hub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -41,18 +41,10 @@ public class UserService {
 	public User registerStudent(User user) {
 		checkEmail(user.getEmail());
 		user.setPassword(passwordEncoder.encode(user.getPassword()));
-		user.setRole(Role.STUDENT);
+		user.setType(UserType.STUDENT);
 		return userRepository.save(user);
 	}
-	
-	/** Registra um professor no sistema */
-	public void registerProfessor(User user) {
-		checkEmail(user.getEmail());
-		user.setPassword(passwordEncoder.encode(user.getPassword()));
-		user.setRole(Role.PROFESSOR);
-		userRepository.save(user);
-	}
-	
+
 	/** Busca um usuário pelo ID */
 	public Optional<User> getUserById(String id) {
 		return userRepository.findById(id);
