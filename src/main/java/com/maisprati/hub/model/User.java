@@ -25,7 +25,7 @@ public class User {
 
 	@NotBlank
 	@Indexed(unique = true)
-	private String username;
+	private String name;
 
 	@Email
 	@NotBlank
@@ -52,6 +52,6 @@ public class User {
 
 	@Override
 	public String toString() {
-		return "User{id='" + id + "', username='" + username + "', email='" + email + "'}";
+		return "User{id='" + id + "', username='" + name + "', email='" + email + "'}";
 	}
 }
