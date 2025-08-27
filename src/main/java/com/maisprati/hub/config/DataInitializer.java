@@ -33,7 +33,7 @@ public class DataInitializer implements CommandLineRunner {
 
         // Cria o usuário admin
         User admin = User.builder()
-                .username("admin")
+                .name("admin")
                 .email("admin@admin.com")
                 .password(passwordEncoder.encode("admin123"))
                 .type(UserType.ADMIN)
