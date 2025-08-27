@@ -45,8 +45,8 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
 
         userRepository.save(admin);
-        log.info("🚀 Usuário admin criado com sucesso!");
-        log.info("📧 Email: admin@admin.com");
-        log.info("🔑 Senha: admin123");
+        log.info("Usuário admin criado com sucesso!");
+        log.info("Email: admin@admin.com");
+        log.info("Senha: admin123");
     }
 }
