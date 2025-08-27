@@ -39,7 +39,7 @@ public class User {
 	private UserType type;
 
 	private String whatsapp;
-	private String turma;
+	private String groupClass;
 	private Boolean hasGroup;
 	private Boolean wantsGroup;
 	private Boolean isFirstLogin;
