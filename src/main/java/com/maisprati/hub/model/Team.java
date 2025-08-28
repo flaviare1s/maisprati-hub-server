@@ -33,7 +33,7 @@ public class Team {
     private String description;
 
     @Min(1)
-    @Max(20)
+    @Max(12)
     private Integer maxMembers;
 
     private Integer currentMembers;
