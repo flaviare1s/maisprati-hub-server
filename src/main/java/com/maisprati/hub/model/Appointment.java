@@ -24,10 +24,14 @@ public class Appointment {
     private String id;
 
     @NotBlank
-    private String studentId;
+    private String studentId; // solo ou membro do time
+
+    private String teamId; // null se solo
 
     @NotBlank
     private String teacherId;
+
+    private boolean isSolo; // true se solo, false se em time
 
     private LocalDate date;
     private LocalTime time;
