@@ -36,32 +36,42 @@ public class UserService {
 	private final BCryptPasswordEncoder passwordEncoder;
 	
 	/**
-	 * Função genérica para criar usuários com tipo definido
+	 * Registra um aluno no sistema
 	 */
 	@Transactional
-	public User registerUser(User user, UserType type) {
+	public User registerStudent(User user) {
 		checkEmail(user.getEmail());
 		user.setPassword(passwordEncoder.encode(user.getPassword()));
-		user.setType(type);
+		user.setType(UserType.STUDENT);
 		user.setCreatedAt(LocalDateTime.now());
 		user.setUpdatedAt(LocalDateTime.now());
 		return userRepository.save(user);
 	}
 	
 	/**
-	 * Registra um aluno no sistema
+	 * Atualiza dados do usuário
 	 */
 	@Transactional
-	public User registerStudent(User user) {
-		return registerUser(user, UserType.STUDENT);
+	public User updateUser(User user) {
+		User existing = userRepository.findById(user.getId())
+			                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+		
+		if (user.getName() != null) existing.setName(user.getName());
+		if (user.getEmail() != null) existing.setEmail(user.getEmail());
+		if (user.getPassword() != null) {
+			existing.setPassword(passwordEncoder.encode(user.getPassword()));
+		}
+		existing.setUpdatedAt(LocalDateTime.now());
+		
+		return userRepository.save(existing);
 	}
-	
+
 	/**
-	 * Registra o professor no sistema
+	 * Deleta usuário (somente admin pode usar ou permitir ao usuário apagar sua conta)
 	 */
 	@Transactional
-	public User registerProfessor(User user) {
-		return registerUser(user, UserType.ADMIN);
+	public void deleteUser(String id) {
+		userRepository.deleteById(id);
 	}
 	
 	/**
@@ -74,9 +84,7 @@ public class UserService {
 	}
 	
 	/**
-	 * Lista todos os usuário
-	 * <br><br>
-	 * TODO: rota deve ser restrita a ADMIN
+	 * Lista todos os usuários (somente admin pode usar)
 	 */
 	public List<User> getAllUsers() {
 		return userRepository.findAll();
@@ -98,7 +106,7 @@ public class UserService {
 	
 	/**
 	 * Valida duplicidade de e-mail
-	 * <br><br>
+	 * <p>
 	 * TODO: garantir atomicidade para evitar operações concorrentes (race condition)
 	 */
 	private void checkEmail(String email) {
