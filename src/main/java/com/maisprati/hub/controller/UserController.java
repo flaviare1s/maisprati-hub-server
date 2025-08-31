@@ -1,7 +1,6 @@
 package com.maisprati.hub.controller;
 
 import com.maisprati.hub.model.User;
-import com.maisprati.hub.repository.UserRepository;
 import com.maisprati.hub.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +14,6 @@ import java.util.List;
 public class UserController {
 	
 	private final UserService userService;
-	private final UserRepository userRepository;
 	
 	/**
 	 * GET api/users - lista todos os usuários
@@ -33,7 +31,7 @@ public class UserController {
 	 */
 	@GetMapping("/{id}")
 	public ResponseEntity<User> get(@PathVariable String id){
-		return userRepository.findById(id)
+		return userService.getUserById(id)
 			       .map(ResponseEntity::ok)
 			       .orElse(ResponseEntity.notFound().build());
 	}
@@ -46,7 +44,7 @@ public class UserController {
 		return userService.getUserById(id)
 			       .map(existing -> {
 				       user.setId(id);
-				       User update = userRepository.save(user);
+				       User update = userService.updateUser(user);
 				       return ResponseEntity.ok(update);
 			       })
 			       .orElse(ResponseEntity.notFound().build());
@@ -57,7 +55,7 @@ public class UserController {
 	 */
 	@PutMapping("/admin")
 	public ResponseEntity<User> updateAdmin(@RequestBody User user){
-		User admin = userRepository.findByEmail("admin@admin.com")
+		User admin = userService.getUserByEmail("admin@admin.com")
 			             .orElseThrow(() -> new RuntimeException("Admin não encontrado"));
 		
 		user.setId(admin.getId()); // força o ID do admin
@@ -72,8 +70,8 @@ public class UserController {
 	 */
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> delete(@PathVariable String id) {
-		if (userRepository.existsById(id)) {
-			userRepository.deleteById(id);
+		if (userService.getUserById(id).isPresent()) {
+			userService.deleteUser(id);
 			return ResponseEntity.noContent().build();
 		} else {
 			return ResponseEntity.notFound().build();
