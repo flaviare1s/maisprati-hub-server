@@ -18,16 +18,18 @@ public class UserController {
 	private final UserRepository userRepository;
 	
 	/**
-	 * GET api/users -> busca todos os usuários
+	 * GET api/users - lista todos os usuários
+	 * <p>
+	 * TODO: restringir para ADMIN
 	 */
-	@GetMapping()
+	@GetMapping
 	public ResponseEntity<List<User>> all() {
 		List<User> users = userService.getAllUsers();
 		return ResponseEntity.ok(users);
 	}
 	
 	/**
-	 * GET api/users/{id} -> busca um usuário
+	 * GET api/users/{id} - busca um usuário pelo id
 	 */
 	@GetMapping("/{id}")
 	public ResponseEntity<User> get(@PathVariable String id){
@@ -37,7 +39,7 @@ public class UserController {
 	}
 	
 	/**
-	 * UPDATE api/users/{id} -> atualiza usuário
+	 * PUT api/users/{id} - atualiza perfil de um usuário (aluno ou admin)
 	 */
 	@PutMapping("/{id}")
 	public ResponseEntity<User> update(@PathVariable String id, @RequestBody User user){
@@ -51,7 +53,22 @@ public class UserController {
 	}
 	
 	/**
-	 * DELETE api/users/{id} -> remove usuário
+	 * PUT api/users/admin - atalho para atualizar o admin
+	 */
+	@PutMapping("/admin")
+	public ResponseEntity<User> updateAdmin(@RequestBody User user){
+		User admin = userRepository.findByEmail("admin@admin.com")
+			             .orElseThrow(() -> new RuntimeException("Admin não encontrado"));
+		
+		user.setId(admin.getId()); // força o ID do admin
+		User updated = userService.updateUser(user);
+		return ResponseEntity.ok(updated);
+	}
+	
+	/**
+	 * DELETE api/users/{id} - remove usuário
+	 * <p>
+	 * TODO: restringir para ADMIN
 	 */
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> delete(@PathVariable String id) {

@@ -17,7 +17,7 @@ public class AuthController {
 	private final UserService userService;
 	
 	/**
-	 * POST api/auth/register -> Cadastra um aluno no sistema
+	 * POST api/auth/register - Cadastra um aluno
 	 */
 	@PostMapping("/register")
 	public ResponseEntity<?> registerStudent(@RequestBody User user) {
@@ -25,13 +25,13 @@ public class AuthController {
 			User saved = userService.registerStudent(user);
 			return ResponseEntity.status(HttpStatus.CREATED).body(saved);
 		} catch (RuntimeException e) {
-			log.error("Erro ao cadastrar usuário: {}", e.getMessage(), e);
+			log.error("Erro ao cadastrar aluno: {}", e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 		}
 	}
 	
 	/**
-	 * POST api/auth/register -> Realiza login do usuário
+	 * POST api/auth/login - Realiza login
 	 */
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody User user) {
