@@ -1,6 +1,7 @@
 package com.maisprati.hub.controller;
 
 import com.maisprati.hub.model.User;
+import com.maisprati.hub.service.AuthService;
 import com.maisprati.hub.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ import java.util.Map;
 public class AuthController {
 	
 	private final UserService userService;
+	private final AuthService authService;
 	
 	/**
 	 * POST api/auth/register - Cadastra um aluno
@@ -57,7 +59,7 @@ public class AuthController {
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody User user) {
 		try {
-			userService.login(user.getEmail(), user.getPassword());
+			authService.login(user.getEmail(), user.getPassword());
 			Map<String, String> response = Map.of("message", "Login realizado com sucesso!");
 			return ResponseEntity.ok(response);
 		} catch (RuntimeException e) {

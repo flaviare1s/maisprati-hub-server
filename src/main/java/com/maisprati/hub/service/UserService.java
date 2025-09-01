@@ -75,15 +75,6 @@ public class UserService {
 	}
 	
 	/**
-	 * Valida email e senha para login
-	 */
-	public User login(String email, String rawPassword) {
-		return userRepository.findByEmail(email)
-			       .filter(u -> passwordEncoder.matches(rawPassword, u.getPassword()))
-			       .orElseThrow(() -> new RuntimeException("Usuário ou senha inválidos!"));
-	}
-	
-	/**
 	 * Lista todos os usuários (somente admin pode usar)
 	 */
 	public List<User> getAllUsers() {
