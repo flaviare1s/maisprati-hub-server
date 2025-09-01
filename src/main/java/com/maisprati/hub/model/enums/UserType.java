@@ -1,6 +1,13 @@
 package com.maisprati.hub.model.enums;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
 public enum UserType {
-	ADMIN,
-	STUDENT
+	ADMIN("admin"),
+	STUDENT("student");
+	
+	private final String name;
 }
