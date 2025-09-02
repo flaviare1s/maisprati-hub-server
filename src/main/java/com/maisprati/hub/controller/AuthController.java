@@ -45,11 +45,12 @@ public class AuthController {
 	public ResponseEntity<?> registerStudent(@RequestBody User user) {
 		try {
 			userService.registerStudent(user);
-			Map<String, String> response = Map.of("message", "Cadastro realizado com sucesso!");
-			return ResponseEntity.status(HttpStatus.CREATED).body(response);
+			return ResponseEntity.status(HttpStatus.CREATED)
+				       .body(Map.of("message", "Cadastro realizado com sucesso!"));
 		} catch (RuntimeException e) {
 			log.error("Erro ao cadastrar aluno: {}", e.getMessage(), e);
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				       .body(Map.of("error", e.getMessage()));
 		}
 	}
 	
@@ -59,12 +60,15 @@ public class AuthController {
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody User user) {
 		try {
-			authService.login(user.getEmail(), user.getPassword());
-			Map<String, String> response = Map.of("message", "Login realizado com sucesso!");
-			return ResponseEntity.ok(response);
+			String token = authService.login(user.getEmail(), user.getPassword());
+			return ResponseEntity.ok(Map.of(
+				"message", "Login realizado com sucesso!",
+				"token", token
+			));
 		} catch (RuntimeException e) {
 			log.error("Erro ao fazer login: {}", e.getMessage(), e);
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+				       .body(Map.of("error", e.getMessage()));
 		}
 	}
 }

@@ -23,7 +23,7 @@ public class AuthService implements UserDetailsService {
 	 * {@link PasswordEncoder} é usado, garantindo flexibilidade e segurança.
 	 */
 	private final PasswordEncoder passwordEncoder;
-//	private final JwtService jwtService; // TODO: classe que gera/valida JWT
+	private final JwtService jwtService;
 	
 	/**
 	 * Carrega um usuário pelo e-mail para autenticação no Spring Security.
@@ -45,7 +45,10 @@ public class AuthService implements UserDetailsService {
 			       .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 	}
 	
-	public void login(String email, String password) {
+	/**
+	 * Realiza login e retorna o token JWT
+	 */
+	public String login(String email, String password) {
 		User user = userRepository.findByEmail(email)
 			            .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 		
@@ -54,7 +57,7 @@ public class AuthService implements UserDetailsService {
 			throw new RuntimeException("Credenciais inválidas");
 		}
 		
-		// se bateu, gera o token JWT
-//		return jwtService.generateToken(user);
+		// Retorna o token JWT
+		return jwtService.generateToken(user);
 	}
 }
