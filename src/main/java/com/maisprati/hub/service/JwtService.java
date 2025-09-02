@@ -1,5 +1,6 @@
 package com.maisprati.hub.service;
 
+import com.maisprati.hub.utils.JwtProperties;
 import com.maisprati.hub.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -7,7 +8,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -17,16 +18,11 @@ import java.util.Base64;
 import java.util.Date;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 	
-	/** Expiração padrão do token em segundos (ajustável) */
-	private static final long DEFAULT_EXPIRATION_SECONDS = 10;
-	
+	private final JwtProperties jwtProperties;
 	private Key signingKey;
-	
-	/** Chave secreta JWT definida no .env ou application.properties */
-	@Value("${jwt.secret}")
-	private String secretKey;
 	
 	/**
 	 * Inicializa o serviço JWT decodificando a chave Base64.
@@ -36,7 +32,7 @@ public class JwtService {
 	@PostConstruct
 	public void init() {
 		try {
-			byte[] keyBytes = Base64.getDecoder().decode(secretKey);
+			byte[] keyBytes = Base64.getDecoder().decode(jwtProperties.getSecret());
 			signingKey = Keys.hmacShaKeyFor(keyBytes);
 		} catch (IllegalArgumentException e) {
 			throw new RuntimeException("JWT Secret inválido. Verifique se está em Base64.", e);
@@ -48,14 +44,7 @@ public class JwtService {
 	 *
 	 * @param user usuário que terá o token gerado
 	 * @param expirationSeconds tempo em segundos até o token expirar
-	 * @return token JWT como {@code String}
-	 * <p>
-	 * Exemplo:
-	 * <pre>
-	 * {@code
-	 * String token = jwtService.generateToken(user, 60); // expira em 60 segundos
-	 * }
-	 * </pre>
+	 * @return token JWT
 	 */
 	public String generateToken(User user, long expirationSeconds) {
 		Instant now = Instant.now();
@@ -69,13 +58,13 @@ public class JwtService {
 	}
 	
 	/**
-	 * Gera token JWT com expiração padrão definida em {@link #DEFAULT_EXPIRATION_SECONDS}.
+	 * Gera token JWT com expiração padrão definida em application.properties
 	 *
 	 * @param user usuário que terá o token gerado
 	 * @return token JWT como {@code String}
 	 */
 	public String generateToken(User user) {
-		return generateToken(user, DEFAULT_EXPIRATION_SECONDS);
+		return generateToken(user, jwtProperties.getExpirationSeconds());
 	}
 	
 	/**
@@ -109,13 +98,6 @@ public class JwtService {
 	 * @param token token JWT
 	 * @param userDetails objeto {@code UserDetails} do usuário
 	 * @return {@code true} se token válido, {@code false} caso contrário
-	 * <p>
-	 * Exemplo:
-	 * <pre>
-	 * {@code
-	 * boolean valid = jwtService.validateToken(token, userDetails);
-	 * }
-	 * </pre>
 	 */
 	public boolean validateToken(String token, UserDetails userDetails) {
 		try {
@@ -124,11 +106,8 @@ public class JwtService {
 				                .build()
 				                .parseClaimsJws(token)
 				                .getBody();
-			
-			String username = claims.getSubject();
-			Date expiration = claims.getExpiration();
-			
-			return username.equals(userDetails.getUsername()) && expiration.after(new Date());
+			return claims.getSubject().equals(userDetails.getUsername())
+				       && claims.getExpiration().after(new Date());
 		} catch (ExpiredJwtException e) {
 			return false;
 		} catch (Exception e) {
