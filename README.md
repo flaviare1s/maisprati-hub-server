@@ -26,27 +26,33 @@ Conta com suporte a **Docker** para rodar o banco localmente, perfis de configur
 > 💡 Observação: no Windows/Mac pode ser mais prático usar o **Docker Desktop**.  
 No Linux basta ter o Docker Engine instalado.
 
-### ⚠️ Lombok no VS Code
-- O Lombok já está configurado no `pom.xml`, então o build funciona em qualquer máquina.
-- Porém, no **VS Code** é necessário instalar a extensão [Lombok Annotations Support](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-lombok) para evitar erros falsos no editor.
-- Sem essa extensão, o projeto compila normalmente, mas o VS Code pode mostrar erros em métodos gerados pelo Lombok (ex.: `getters`, `setters`, `@Builder`).
-
+### ⚠️ Lombok no VS Code e IntelliJ
+- O Lombok já está configurado no `pom.xml`, então o projeto compila em qualquer máquina.
+- **VS Code**: instale a extensão [Lombok Annotations Support](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-lombok). Sem ela, o editor pode mostrar erros falsos em métodos gerados automaticamente(`getters`, `setters`, `@Builder`), mas o build funciona normalmente.
+- **IntelliJ IDEA**: instale o **plugin Lombok** `(Settings → Plugins → Marketplace → Lombok → Install)` e **habilite o Annotation Processing** `(Settings → Build, Execution, Deployment → Compiler → Annotation Processors → Enable annotation processing)`.
+  - Sem habilitar o Annotation Processing, o IntelliJ também mostrará erros falsos nos métodos gerados automaticamente, mesmo com o plugin instalado.
 ---
 
-## 🗂 Estrutura do Projeto
+## 🗂 Estrutura do Projeto (Camadas)
 ```markdown
 maisprati-hub-server/
 ├── docker/                             # Arquivos Docker e Compose
 ├── src/main/java/com/maisprati/hub
-│   ├── config/                         # Configurações do Mongo e segurança
-│   ├── controller/                     # Endpoints da API
-│   ├── model/                          # Entidades e enums
-│   ├── repository/                     # Interface com MongoDB
-│   ├── service/                        # Lógica de negócio
-│   ├── utils/                          # Classes utilitárias
-│   └── HubServerApplication.java
-│
-├── resources/ 
+│   ├── application/                    # Camada de aplicação: serviços e DTOs
+│   │   ├── dto                         # Objetos de transferência de dados
+│   │   └── service                     # Lógica de negócio
+│   ├── domain/                         # Camada de domínio: regras e modelos principais
+│   │   ├── enums                       # Tipos de enumeração
+│   │   └── model                       # Entidades do sistema
+│   ├── infrastructure/                 # Camada de infraestrutura: acesso a dados e segurança
+│   │   ├── config                      # Configurações do sistema e inicialização de dados
+│   │   ├── persistence                 # Repositórios e mapeamentos para MongoDB
+│   │   └── security                    # Autenticação, JWT, filtros e SecurityConfig
+│   └── presentation/                   # Camada de apresentação: controllers e exceptions
+│   ├── controller                      # Endpoints REST
+│   ├── dto                             # DTOs específicos de entrada/saída
+│   └── exception                       # Tratamento de erros
+├── resources/                          # Configurações e arquivos estáticos
 │   ├── application.properties          # config base
 │   ├── application-dev.properties      # ambiente dev
 │   └── application-prod.properties     # ambiente prod
@@ -55,27 +61,27 @@ maisprati-hub-server/
 - 📝 Cada pasta está bem organizada para facilitar a navegação, mesmo para iniciantes.
 ---
 
-## 🔄 Fluxo da API
+## 🔄 Fluxo da API (Camadas)
 
 ```mermaid
 flowchart LR
-    A[Cliente] --> B[Controller]
-    B --> C[Service]
-    C --> D[Repository]
-    D --> E[(MongoDB)]
-
-    B:::controller
-    C:::service
-    D:::repository
+    Cliente --> Presentation[Controller]
+    Presentation --> Application[Service]
+    Application --> Domain[Model / Entities]
+    Application --> Infrastructure[Repositories / Security]
+    Infrastructure --> MongoDB[(MongoDB)]
+    Domain --> Infrastructure
 ```
-* **Controller**: recebe e responde requisições
-* **Service**: lógica de negócio
-* **Repository**: acessa o MongoDB
+- **Cliente** → envia requisição HTTP
+- **Controller** → recebe e valida entrada
+- **Service** (Application) → lógica de negócio, regras do sistema
+- **Domain** → entidades e enums principais
+- **Infrastructure** → repositórios acessam MongoDB, JWT e filtros de segurança
+- **MongoDB** → armazena dados persistentes
 ---
 
 ## 👥 Usuários e Perfis
-- `ADMIN` – acesso administrativo
-- `PROFESSOR` – gerenciamento acadêmico
+- `ADMIN` – acesso administrativo e gerenciamento acadêmico
 - `STUDENT` – estudantes do programa
 
 ## 🛡️ Segurança
@@ -84,13 +90,69 @@ flowchart LR
 - Variáveis sensíveis carregadas via **.env**
 ---
 
+## 🛡️ Autenticação e Autorização (JWT)
+O sistema usa **Spring Security** com **JWT** (**JSON Web Tokens**) para proteger rotas privadas.
+
+### 1️⃣ Chave secreta
+- Crie um arquivo `.env` na raiz do projeto com:
+  ```dotenv
+   JWT_SECRET=SuaChaveSecretaBase64
+  ```
+  - ⚠️ `JWT_SECRET` deve estar em Base64.
+
+Configuração já pronta no `application.properties`
+```properties
+# Chave importada do .env
+jwt.secret=${JWT_SECRET}
+
+# Expiração do token em segundos (ex: 3600 = 1 hora)
+jwt.expiration-seconds=3600
+```
+### 2️⃣ Endpoints
+- **POST /api/auth/register** – registra usuário com role `STUDENT`.
+- **POST /api/auth/login** – retorna token JWT no JSON de resposta.
+
+### 3️⃣ Rotas privadas
+- Todas exigem header:
+  ```http request
+  Authorization: Bearer <token_do_login>
+  ```
+- Token inválido ou ausente → **401 Unauthorized**
+- Token válido, mas papel não permitido → **403 Forbidden**
+
+### 4️⃣ Papéis (Roles)
+- `ADMIN` – acesso total
+- `STUDENT` – acesso limitado ao próprio perfil (a implementar)
+---
+
+## 🎲 Usando MongoDB local (sem Docker)
+- Instale o [MongoDB Compass](https://www.mongodb.com/try/download/compass) no seu computador.
+- No `src/main/resources/application-dev.properties`, já está configurado:
+  ```properties
+  # MongoDB local (sem autenticação)
+  spring.data.mongodb.uri=mongodb://localhost:27017/maisprati-hub
+  spring.data.mongodb.database=maisprati-hub
+  ```
+- Abra o MongoDB Compass e conecte usando a URI acima:
+  ```text
+  mongodb://localhost:27017/maisprati-hub
+  ```
+---
+
 ## 🐳 Guia Completo: MongoDB com Docker
+- Caso queira usar Docker, com autenticação, configure no `application-dev.properties`:
+  ```properties
+  # MongoDB local via Docker (com autenticação)
+  #spring.data.mongodb.uri=mongodb://admin:admin123@localhost:27017/maisprati-hub?authSource=admin
+  ```
+  > ⚠️ Lembre-se de **comentar a URI local e descomentar a do Docker** antes de subir o container.
+
 ### 1️⃣ Criar e subir o container
 ```bash
-  docker-compose -f docker-compose.dev.yml up -d
+  docker-compose -f docker/docker-compose.dev.yml up -d
 ```
 Explicando os parâmetros:
-- `-f docker-compose.dev.yml` → indica qual arquivo Compose usar
+- `-f docker/docker-compose.dev.yml` → indica qual arquivo Compose usar
 - `up` → cria os containers definidos no arquivo
 - `-d` → roda em background
 
@@ -102,25 +164,25 @@ Explicando os parâmetros:
 
 ### 3️⃣ Parar o container (sem apagar dados)
 ```bash
-  docker-compose -f docker-compose.dev.yml stop
+  docker-compose -f docker/docker-compose.dev.yml stop
 ```
 - Isso apenas **pausa** o container. Os dados continuam salvos no volume.
 
 ### 4️⃣ Rodar novamente
 ```bash
-  docker-compose -f docker-compose.dev.yml start
+  docker-compose -f docker/docker-compose.dev.yml start
 ```
 
 ### 5️⃣ Parar e remover o container (mantendo os dados)
 ```bash
-  docker-compose -f docker-compose.dev.yml down
+  docker-compose -f docker/docker-compose.dev.yml down
 ```
 - Isso apaga o container, mas o volume `mongo_data` com os dados fica guardado.
   Quando rodar `up -d` de novo, os dados estarão lá.
 
 ### 6️⃣ Parar e remover container + apagar todos os dados
 ```bash
-  docker-compose -f docker-compose.dev.yml down -v
+  docker-compose -f docker/docker-compose.dev.yml down -v
 ```
 - ⚠️ **Atenção**: o `-v` remove também os volumes → **apaga todos os dados do banco**.
   Use isso apenas se quiser começar com o banco zerado.
@@ -137,7 +199,7 @@ Explicando os parâmetros:
   db.users.find()
   ```
 
-### 8️⃣ Visualizar dados no MongoDB Compass (opcional)
+### 8️⃣ Visualizar dados no MongoDB Compass
 1. Instale o [MongoDB Compass](https://www.mongodb.com/try/download/compass)
 2. Conecte-se com a URI:
     ```bash
@@ -185,15 +247,25 @@ Na raiz do repositório:
 ---
 
 ## 🛠 Endpoints (MVP)
-> Em andamento — por enquanto implementamos apenas a camada de serviço.
+
+| Método | Endpoint          | Acesso                   | Descrição                                     |
+|--------|-------------------|--------------------------|-----------------------------------------------|
+| POST   | api/auth/register | Público                  | Registrar novo usuário (role padrão: STUDENT) |
+| POST   | api/auth/login    | Público                  | Login de usuário e retorno do token JWT       |
+| GET    | api/users         | ADMIN                    | Listar todos os usuários                      |
+| GET    | api/users/{id}    | ADMIN ou próprio usuário | Obter dados de um usuário específico          |
+| PUT    | api/users/{id}    | ADMIN ou próprio usuário | Atualizar dados de um usuário                 |
+| PUT    | api/users/admin   | ADMIN                    | Atualizar dados do admin                      |
+| DELETE | api/users/{id}    | ADMIN                    | Remover usuário                               |
+
 
 ## 📌 Roadmap (MVP)
 1. [x] Estrutura inicial (Spring Boot + MongoDB)
 2. [x] Criação de usuários (com hashing)
 3. [x] Separação por papéis (student, professor, admin)
-4. [ ] Inicialização do Admin
-5. [ ] Endpoints REST para autenticação e cadastro
-6. [ ] Integração JWT
+4. [x] Inicialização do Admin
+5. [x] Endpoints REST para autenticação e cadastro
+6. [x] Integração JWT
 7. [ ] Integração com frontend (CORS, porta, URLs e envio de JWT)
 8. [ ] Testes unitários e de integração
 9. [ ] Deploy inicial (Render)
@@ -201,16 +273,20 @@ Na raiz do repositório:
 ---
 
 ## 📖 Guia de Contribuição e Git Básico
-### 1️⃣ Clonar repositório
+### 1️⃣ Clonar repositório e trocar para develop
 ```bash
   git clone https://github.com/flaviare1s/maisprati-hub-server.git
   cd maisprati-hub-server
+  
+  git checkout develop
+  git pull origin develop
 ```
 
-### 2️⃣ Criar branch para nova feature
+### 2️⃣ Criar branch para nova feature a partir da develop
 ```bash
   git checkout -b feature/nome-da-feature
 ```
+- **Todas as novas features devem começar da develop**, evitando conflitos e garantindo que a branch esteja sempre atualizada.
 
 ### 3️⃣ Commit de alterações
 ```bash
