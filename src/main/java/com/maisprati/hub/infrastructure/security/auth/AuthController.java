@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -17,6 +19,7 @@ import java.util.Map;
  * <ul>
  *     <li>Registrar um aluno no sistema</li>
  *     <li>Realizar login de usuários</li>
+ *     <li>Buscar dados do usuário autenticado</li>
  * </ul>
  *
  * <p>As respostas HTTP são padronizadas utilizando {@link Map#of(Object, Object)} com:</p>
@@ -67,6 +70,31 @@ public class AuthController {
 		} catch (RuntimeException e) {
 			log.error("Erro ao fazer login: {}", e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+				       .body(Map.of("error", e.getMessage()));
+		}
+	}
+	
+	/**
+	 * GET api/auth/me - Busca dados do usuário autenticado
+	 */
+	@GetMapping("/me")
+	public ResponseEntity<?> getCurrentUser() {
+		try {
+			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+			
+			if (authentication == null || !authentication.isAuthenticated()) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					       .body(Map.of("error", "Usuário não autenticado"));
+			}
+			
+			String email = authentication.getName();
+			User user = userService.getUserByEmail(email)
+				            .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+			
+			return ResponseEntity.ok(user);
+		} catch (RuntimeException e) {
+			log.error("Erro ao buscar usuário atual: {}", e.getMessage(), e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				       .body(Map.of("error", e.getMessage()));
 		}
 	}

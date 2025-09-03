@@ -49,6 +49,8 @@ public class JwtService {
 		Instant now = Instant.now();
 		return Jwts.builder()
 			       .setSubject(user.getEmail())
+			       .claim("id", user.getId())
+			       .claim("type", user.getType().getName())
 			       .claim("role", user.getType().getName())
 			       .setIssuedAt(Date.from(now))
 			       .setExpiration(Date.from(now.plusSeconds(expirationSeconds)))

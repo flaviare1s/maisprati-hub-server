@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import org.springframework.data.annotation.Transient;
 
 import java.time.LocalDateTime;
 
@@ -19,4 +20,7 @@ public class TeamMember {
     private String subLeaderType; // Frontend, Backend, etc.
     private LocalDateTime joinedAt;
     private Boolean isActive;
+    
+    @Transient // Não será persistido no banco, apenas usado para transferência de dados
+    private User user;
 }
