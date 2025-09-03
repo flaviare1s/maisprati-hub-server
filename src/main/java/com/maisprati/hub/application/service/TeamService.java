@@ -48,6 +48,34 @@ public class TeamService {
     }
 
     /**
+     * Buscar time pelo ID com dados completos dos usuários
+     */
+    public Optional<Team> getTeamByIdWithUserData(String teamId) {
+        Optional<Team> teamOpt = teamRepository.findById(teamId);
+        if (teamOpt.isPresent()) {
+            Team team = teamOpt.get();
+            // Enriquecer os dados dos membros com informações dos usuários
+            if (team.getMembers() != null) {
+                team.getMembers().forEach(member -> {
+                    Optional<User> userOpt = userRepository.findById(member.getUserId());
+                    if (userOpt.isPresent()) {
+                        User user = userOpt.get();
+                        // Criar um objeto simplificado para evitar exposição de dados sensíveis
+                        User publicUser = User.builder()
+                                .id(user.getId())
+                                .name(user.getName())
+                                .email(user.getEmail())
+                                .type(user.getType())
+                                .build();
+                        member.setUser(publicUser);
+                    }
+                });
+            }
+        }
+        return teamOpt;
+    }
+
+    /**
      * Validar código de segurança do time
      */
     public Team validateTeamCode(String teamId, String securityCode) {

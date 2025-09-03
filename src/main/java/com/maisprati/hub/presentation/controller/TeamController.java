@@ -1,13 +1,16 @@
 package com.maisprati.hub.presentation.controller;
 
 import com.maisprati.hub.domain.model.Team;
+import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.domain.enums.TeamMemberRole;
 import com.maisprati.hub.application.service.TeamService;
+import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,6 +22,7 @@ import java.util.Optional;
 public class TeamController {
 
     private final TeamService teamService;
+    private final UserRepository userRepository;
 
     /**
      * GET /api/teams - Buscar todos os times
@@ -43,7 +47,7 @@ public class TeamController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<Team> getTeamById(@PathVariable String id) {
-        Optional<Team> team = teamService.getTeamById(id);
+        Optional<Team> team = teamService.getTeamByIdWithUserData(id);
         return team.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -56,10 +60,11 @@ public class TeamController {
             @RequestBody Team teamData,
             @RequestParam String creatorUserId) {
         try {
+            log.info("Recebendo requisição para criar time. Dados: {}, Criador: {}", teamData, creatorUserId);
             Team newTeam = teamService.createTeam(teamData, creatorUserId);
             return ResponseEntity.ok(newTeam);
         } catch (RuntimeException e) {
-            log.error("Erro ao criar time: {}", e.getMessage());
+            log.error("Erro ao criar time: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -85,20 +90,34 @@ public class TeamController {
      * POST /api/teams/{teamId}/members - Adicionar membro ao time
      */
     @PostMapping("/{teamId}/members")
-    public ResponseEntity<Team> addMemberToTeam(
+    public ResponseEntity<Map<String, Object>> addMemberToTeam(
             @PathVariable String teamId,
             @RequestBody Map<String, Object> memberData) {
         try {
+            log.info("Adicionando membro ao time. TeamId: {}, MemberData: {}", teamId, memberData);
+            
             String userId = (String) memberData.get("userId");
             String roleStr = (String) memberData.getOrDefault("role", "MEMBER");
             String subLeaderType = (String) memberData.get("subLeaderType");
 
+            log.info("Dados extraídos: userId={}, role={}, subLeaderType={}", userId, roleStr, subLeaderType);
+
             TeamMemberRole role = TeamMemberRole.valueOf(roleStr.toUpperCase());
 
             Team updatedTeam = teamService.addMemberToTeam(teamId, userId, role, subLeaderType);
-            return ResponseEntity.ok(updatedTeam);
+            
+            // Buscar dados atualizados do usuário
+            User updatedUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+            
+            // Criar resposta com team e dados do usuário
+            Map<String, Object> response = new HashMap<>();
+            response.put("updatedTeam", updatedTeam);
+            response.put("updatedUserData", updatedUser);
+            
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Erro ao adicionar membro: {}", e.getMessage());
+            log.error("Erro ao adicionar membro: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -118,7 +137,11 @@ public class TeamController {
             TeamMemberRole role = TeamMemberRole.valueOf(roleStr.toUpperCase());
 
             Team updatedTeam = teamService.updateMemberRole(teamId, userId, role, subLeaderType);
-            return ResponseEntity.ok(updatedTeam);
+            
+            // Retornar o team com dados completos dos usuários
+            Optional<Team> teamWithUserData = teamService.getTeamByIdWithUserData(teamId);
+            return teamWithUserData.map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.ok(updatedTeam));
         } catch (Exception e) {
             log.error("Erro ao atualizar role: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
