@@ -73,7 +73,7 @@ public class TeamController {
      * POST /api/teams/{teamId}/validate - Validar código de segurança
      */
     @PostMapping("/{teamId}/validate")
-    public ResponseEntity<Team> validateTeamCode(
+    public ResponseEntity<?> validateTeamCode(
             @PathVariable String teamId,
             @RequestBody Map<String, String> request) {
         try {
@@ -82,7 +82,7 @@ public class TeamController {
             return ResponseEntity.ok(team);
         } catch (RuntimeException e) {
             log.error("Erro na validação: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
