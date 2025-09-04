@@ -32,6 +32,5 @@ public class Notification {
 
     private String message;
     private Map<String, Object> data; // dados extras flexíveis
-    private Boolean isRead;
     private LocalDateTime createdAt;
 }
