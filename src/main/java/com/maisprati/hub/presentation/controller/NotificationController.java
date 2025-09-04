@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -36,6 +37,28 @@ public class NotificationController {
             return ResponseEntity.ok(notification);
         } catch (Exception e) {
             log.error("Erro ao criar notificação: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * POST /api/notifications/send-to-admin - Enviar mensagem para o admin
+     */
+    @PostMapping("/send-to-admin")
+    public ResponseEntity<Notification> sendMessageToAdmin(@RequestBody Map<String, String> request) {
+        try {
+            String studentName = request.get("studentName");
+            String message = request.get("message");
+            
+            if (studentName == null || message == null) {
+                log.error("Dados incompletos para enviar mensagem ao admin");
+                return ResponseEntity.badRequest().build();
+            }
+            
+            Notification notification = notificationService.sendMessageToAdmin(studentName, message);
+            return ResponseEntity.ok(notification);
+        } catch (Exception e) {
+            log.error("Erro ao enviar mensagem para admin: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         }
     }

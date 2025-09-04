@@ -96,6 +96,32 @@ public class NotificationService {
     }
 
     /**
+     * Enviar mensagem genérica para o admin (solicitações gerais)
+     */
+    public Notification sendMessageToAdmin(String studentName, String message) {
+        Optional<User> adminOpt = userRepository.findByEmail("admin@admin.com");
+        
+        if (adminOpt.isEmpty()) {
+            throw new RuntimeException("Admin não encontrado no sistema");
+        }
+
+        User admin = adminOpt.get();
+        
+        Notification notification = Notification.builder()
+                .userId(admin.getId())
+                .type("student_request")
+                .title("Nova solicitação do aluno " + studentName)
+                .message(studentName + ": " + message)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Notification savedNotification = notificationRepository.save(notification);
+        log.info("Solicitação enviada para admin de {}: {}", studentName, message);
+        
+        return savedNotification;
+    }
+
+    /**
      * Notificar admin sobre saída de membro do time
      */
     public void notifyAdminTeamExit(String studentName, String teamName, String reason) {
