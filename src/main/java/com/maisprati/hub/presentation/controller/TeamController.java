@@ -154,9 +154,15 @@ public class TeamController {
     @DeleteMapping("/{teamId}/members/{userId}")
     public ResponseEntity<Team> removeMemberFromTeam(
             @PathVariable String teamId,
-            @PathVariable String userId) {
+            @PathVariable String userId,
+            @RequestBody(required = false) Map<String, String> requestBody) {
         try {
-            Team updatedTeam = teamService.removeMemberFromTeam(teamId, userId);
+            String reason = null;
+            if (requestBody != null) {
+                reason = requestBody.get("reason");
+            }
+            
+            Team updatedTeam = teamService.removeMemberFromTeam(teamId, userId, reason);
             return ResponseEntity.ok(updatedTeam);
         } catch (RuntimeException e) {
             log.error("Erro ao remover membro: {}", e.getMessage());
