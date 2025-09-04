@@ -101,8 +101,16 @@ public class TeamService {
             throw new RuntimeException("Apenas administradores podem criar times");
         }
 
-        // Gerar código de segurança único
-        String securityCode = generateUniqueSecurityCode();
+        // Usar o código de segurança fornecido pelo frontend, ou gerar um novo se não fornecido
+        String securityCode = teamData.getSecurityCode();
+        if (securityCode == null || securityCode.trim().isEmpty()) {
+            securityCode = generateUniqueSecurityCode();
+        } else {
+            // Verificar se o código fornecido já existe
+            if (teamRepository.existsBySecurityCode(securityCode)) {
+                throw new RuntimeException("Código de segurança já existe. Gere um novo código.");
+            }
+        }
 
         // Criar o time
         Team newTeam = Team.builder()
