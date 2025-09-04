@@ -24,6 +24,7 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private static final int DEFAULT_MAX_MEMBERS = 10;
 
     /**
@@ -101,8 +102,16 @@ public class TeamService {
             throw new RuntimeException("Apenas administradores podem criar times");
         }
 
-        // Gerar código de segurança único
-        String securityCode = generateUniqueSecurityCode();
+        // Usar o código de segurança fornecido pelo frontend, ou gerar um novo se não fornecido
+        String securityCode = teamData.getSecurityCode();
+        if (securityCode == null || securityCode.trim().isEmpty()) {
+            securityCode = generateUniqueSecurityCode();
+        } else {
+            // Verificar se o código fornecido já existe
+            if (teamRepository.existsBySecurityCode(securityCode)) {
+                throw new RuntimeException("Código de segurança já existe. Gere um novo código.");
+            }
+        }
 
         // Criar o time
         Team newTeam = Team.builder()
@@ -169,6 +178,9 @@ public class TeamService {
         user.setIsFirstLogin(false);
         userRepository.save(user);
 
+        // Notificar admin sobre entrada no time
+        notificationService.notifyAdminTeamJoin(user.getName(), team.getName());
+
         log.info("Usuário '{}' adicionado ao time '{}'", user.getName(), team.getName());
         return updatedTeam;
     }
@@ -202,8 +214,20 @@ public class TeamService {
      */
     @Transactional
     public Team removeMemberFromTeam(String teamId, String userId) {
+        return removeMemberFromTeam(teamId, userId, null);
+    }
+
+    /**
+     * Remover membro do time com motivo para notificação
+     */
+    @Transactional
+    public Team removeMemberFromTeam(String teamId, String userId, String reason) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new RuntimeException("Time não encontrado"));
+
+        // Buscar dados do usuário antes de remover
+        User user = userRepository.findById(userId)
+                .orElse(null);
 
         // Remover membro
         team.getMembers().removeIf(member -> member.getUserId().equals(userId));
@@ -213,10 +237,14 @@ public class TeamService {
         Team updatedTeam = teamRepository.save(team);
 
         // Atualizar usuário (remover do grupo)
-        userRepository.findById(userId).ifPresent(user -> {
+        if (user != null) {
             user.setHasGroup(false);
             userRepository.save(user);
-        });
+
+            // Notificar admin sobre saída do time
+            String finalReason = reason != null ? reason : "Motivo não informado";
+            notificationService.notifyAdminTeamExit(user.getName(), team.getName(), finalReason);
+        }
 
         log.info("Usuário '{}' removido do time '{}'", userId, team.getName());
         return updatedTeam;
