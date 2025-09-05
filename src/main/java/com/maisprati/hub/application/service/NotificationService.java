@@ -114,7 +114,7 @@ public class NotificationService {
                 Map.of("studentName", studentName, "teamName", teamName, "reason", reason)
         );
     }
-    
+
     /**
      * Monta a notificação para o admin e salva no banco
      */
