@@ -26,15 +26,14 @@ public class UserController {
 	
 	/**
 	 * GET api/users - Lista todos os usuários
-	 * <p>Restrito para ADMIN</p>
 	 */
 	@GetMapping
-	@PreAuthorize("hasRole('ADMIN')")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
 	public ResponseEntity<List<User>> all() {
 		List<User> users = userService.getAllUsers();
 		return ResponseEntity.ok(users);
 	}
-	
+
 	/**
 	 * GET api/users/{id} - Busca um usuário pelo id
 	 * <p>O próprio usuário pode acessar seu perfil, ou ADMIN pode acessar qualquer.</p>
