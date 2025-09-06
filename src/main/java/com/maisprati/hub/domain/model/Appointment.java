@@ -29,7 +29,7 @@ public class Appointment {
     private String teamId; // null se solo
 
     @NotBlank
-    private String teacherId;
+    private String adminId;
 
     private boolean isSolo; // true se solo, false se em time
 
