@@ -36,13 +36,18 @@ public class TimeSlotDayService {
                     return newDay;
                 });
 
-        if (day.getId() != null) {
-            for (TimeSlot slot : slots) {
-                boolean exists = day.getSlots().stream()
-                        .anyMatch(s -> s.getTime().equals(slot.getTime()));
-                if (!exists) {
-                    day.getSlots().add(slot);
-                }
+        List<TimeSlot> bookedSlots = day.getSlots().stream()
+                .filter(TimeSlot::isBooked)
+                .toList();
+
+        day.getSlots().clear();
+        day.getSlots().addAll(bookedSlots);
+        
+        for (TimeSlot newSlot : slots) {
+            boolean isAlreadyBooked = bookedSlots.stream()
+                    .anyMatch(s -> s.getTime().equals(newSlot.getTime()));
+            if (!isAlreadyBooked) {
+                day.getSlots().add(newSlot);
             }
         }
 
