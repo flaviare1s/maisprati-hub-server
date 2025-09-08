@@ -28,7 +28,7 @@ public class TimeSlotDayController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestBody List<TimeSlot> slots
     ) {
-        TimeSlotDay day = timeSlotDayService.createDay(adminId, date, slots);
+        TimeSlotDay day = timeSlotDayService.createOrUpdateDay(adminId, date, slots);
         return ResponseEntity.ok(day);
     }
 

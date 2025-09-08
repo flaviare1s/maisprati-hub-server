@@ -25,16 +25,26 @@ public class TimeSlotDayService {
      * Criar um novo dia com slots.
      */
     @Transactional
-    public TimeSlotDay createDay(String adminId, LocalDate date, List<TimeSlot> slots) {
-        if (timeSlotDayRepository.findByAdminIdAndDate(adminId, date).isPresent()) {
-            throw new RuntimeException("Já existe um dia de horários para " + date);
-        }
+    public TimeSlotDay createOrUpdateDay(String adminId, LocalDate date, List<TimeSlot> slots) {
+        TimeSlotDay day = timeSlotDayRepository.findByAdminIdAndDate(adminId, date)
+                .orElseGet(() -> {
+                    TimeSlotDay newDay = TimeSlotDay.builder()
+                            .adminId(adminId)
+                            .date(date)
+                            .slots(slots)
+                            .build();
+                    return newDay;
+                });
 
-        TimeSlotDay day = TimeSlotDay.builder()
-                .adminId(adminId)
-                .date(date)
-                .slots(slots)
-                .build();
+        if (day.getId() != null) {
+            for (TimeSlot slot : slots) {
+                boolean exists = day.getSlots().stream()
+                        .anyMatch(s -> s.getTime().equals(slot.getTime()));
+                if (!exists) {
+                    day.getSlots().add(slot);
+                }
+            }
+        }
 
         return timeSlotDayRepository.save(day);
     }
