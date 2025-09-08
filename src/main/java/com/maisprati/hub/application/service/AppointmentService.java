@@ -102,4 +102,11 @@ public class AppointmentService {
     public List<Appointment> getAppointmentsByAdmin(String adminId) {
         return appointmentRepository.findByAdminId(adminId);
     }
+
+    /**
+     * Buscar por times
+     */
+    public List<Appointment> getAppointmentsByTeam(String teamId) {
+        return appointmentRepository.findByTeamId(teamId);
+    }
 }

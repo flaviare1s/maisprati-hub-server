@@ -23,13 +23,17 @@ public class AppointmentController {
     @GetMapping
     public ResponseEntity<List<Appointment>> getAppointments(
             @RequestParam(required = false) String adminId,
-            @RequestParam(required = false) String studentId
+            @RequestParam(required = false) String studentId,
+            @RequestParam(required = false) String teamId
     ) {
         if (adminId != null) {
             List<Appointment> appointments = appointmentService.getAppointmentsByAdmin(adminId);
             return ResponseEntity.ok(appointments);
         } else if (studentId != null) {
             List<Appointment> appointments = appointmentService.getAppointmentsByStudent(studentId);
+            return ResponseEntity.ok(appointments);
+        } else if (teamId != null) {
+            List<Appointment> appointments = appointmentService.getAppointmentsByTeam(teamId);
             return ResponseEntity.ok(appointments);
         }
         return ResponseEntity.badRequest().build();
