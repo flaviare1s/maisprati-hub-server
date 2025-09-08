@@ -89,7 +89,17 @@ public class AppointmentService {
         return saved;
     }
 
+    /**
+     * Buscar agendamentos por estudante
+     */
     public List<Appointment> getAppointmentsByStudent(String studentId) {
         return appointmentRepository.findByStudentId(studentId);
+    }
+
+    /**
+     * Buscar agendamentos por admin (professor)
+     */
+    public List<Appointment> getAppointmentsByAdmin(String adminId) {
+        return appointmentRepository.findByAdminId(adminId);
     }
 }
