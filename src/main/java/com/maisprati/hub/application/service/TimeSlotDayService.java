@@ -62,8 +62,10 @@ public class TimeSlotDayService {
         TimeSlotDay day = timeSlotDayRepository.findByAdminIdAndDate(adminId, date)
                 .orElseThrow(() -> new DayNotFoundException("Dia não encontrado"));
 
+        String timeString = time.toString().substring(0, 5);
+
         TimeSlot slot = day.getSlots().stream()
-                .filter(s -> s.getTime().equals(time))
+                .filter(s -> s.getTime().equals(timeString))
                 .findFirst()
                 .orElseThrow(() -> new SlotUnavailableException("Horário não encontrado"));
 
@@ -87,8 +89,10 @@ public class TimeSlotDayService {
         TimeSlotDay day = timeSlotDayRepository.findByAdminIdAndDate(adminId, date)
                 .orElseThrow(() -> new DayNotFoundException("Dia não encontrado"));
 
+        String timeString = time.toString().substring(0, 5);
+
         day.getSlots().stream()
-                .filter(s -> s.getTime().equals(time))
+                .filter(s -> s.getTime().equals(timeString))
                 .findFirst()
                 .ifPresent(slot -> {
                     slot.setBooked(false);
