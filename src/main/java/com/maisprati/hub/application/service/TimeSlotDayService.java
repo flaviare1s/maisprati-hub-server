@@ -107,4 +107,11 @@ public class TimeSlotDayService {
         return timeSlotDayRepository.findByAdminIdAndDate(adminId, date)
                 .orElseThrow(() -> new DayNotFoundException("Dia não encontrado para admin " + adminId + " na data " + date));
     }
+
+    @Transactional(readOnly = true)
+    public List<TimeSlotDay> getSlotsByAdminAndMonth(String adminId, int year, int month) {
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        return timeSlotDayRepository.findByAdminIdAndDateBetween(adminId, start, end);
+    }
 }

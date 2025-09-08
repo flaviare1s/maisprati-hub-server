@@ -67,4 +67,14 @@ public class TimeSlotDayController {
         timeSlotDayService.releaseSlot(adminId, date, localTime);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/month")
+    public ResponseEntity<List<TimeSlotDay>> getMonthSlots(
+            @RequestParam String adminId,
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        List<TimeSlotDay> slots = timeSlotDayService.getSlotsByAdminAndMonth(adminId, year, month);
+        return ResponseEntity.ok(slots);
+    }
 }
