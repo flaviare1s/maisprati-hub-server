@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -86,5 +87,9 @@ public class AppointmentService {
         log.info("Agendamento {} concluído", appointmentId);
 
         return saved;
+    }
+
+    public List<Appointment> getAppointmentsByStudent(String studentId) {
+        return appointmentRepository.findByStudentId(studentId);
     }
 }

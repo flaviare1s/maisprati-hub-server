@@ -82,4 +82,10 @@ public class TimeSlotDayService {
 
         timeSlotDayRepository.save(day);
     }
+
+    @Transactional(readOnly = true)
+    public TimeSlotDay getDayByAdminAndDate(String adminId, LocalDate date) {
+        return timeSlotDayRepository.findByAdminIdAndDate(adminId, date)
+                .orElseThrow(() -> new DayNotFoundException("Dia não encontrado para admin " + adminId + " na data " + date));
+    }
 }
