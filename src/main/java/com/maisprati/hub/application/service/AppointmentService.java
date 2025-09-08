@@ -1,7 +1,7 @@
 package com.maisprati.hub.application.service;
 
+import com.maisprati.hub.domain.exception.AppointmentNotFoundException;
 import com.maisprati.hub.domain.model.Appointment;
-import com.maisprati.hub.domain.model.TimeSlotDay;
 import com.maisprati.hub.domain.enums.AppointmentStatus;
 import com.maisprati.hub.infrastructure.persistence.repository.AppointmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Optional;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +21,8 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final TimeSlotDayService timeSlotDayService;
 
+    private final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+
     /**
      * Criar agendamento
      */
@@ -29,28 +31,25 @@ public class AppointmentService {
             String studentId,
             String adminId,
             String teamId,
-            String date,
-            String time
+            LocalDate date,
+            LocalTime time
     ) {
-        LocalDate localDate = LocalDate.parse(date);
-        LocalTime localTime = LocalTime.parse(time);
-
-        // Marcar slot como booked
-        timeSlotDayService.markSlotAsBooked(adminId, localDate, time);
+        // Marcar slot como reservado
+        timeSlotDayService.markSlotAsBooked(adminId, date, time);
 
         // Criar agendamento
         Appointment appointment = Appointment.builder()
                 .studentId(studentId)
                 .adminId(adminId)
                 .teamId(teamId)
-                .date(localDate)
-                .time(localTime)
+                .date(date)
+                .time(time)
                 .status(AppointmentStatus.SCHEDULED)
                 .build();
 
         Appointment saved = appointmentRepository.save(appointment);
         log.info("Agendamento criado: aluno {} no time {} às {} ({})",
-                studentId, teamId, time, date);
+                studentId, teamId, time.format(TIME_FORMATTER), date);
 
         return saved;
     }
@@ -61,21 +60,17 @@ public class AppointmentService {
     @Transactional
     public Appointment cancelAppointment(String appointmentId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() -> new AppointmentNotFoundException(appointmentId));
 
         // Atualizar status
         appointment.setStatus(AppointmentStatus.CANCELLED);
-        appointmentRepository.save(appointment);
 
-        // Liberar slot
-        timeSlotDayService.releaseSlot(
-                appointment.getAdminId(),
-                appointment.getDate(),
-                appointment.getTime().toString()
-        );
+        // Liberar slot via service
+        timeSlotDayService.releaseSlot(appointment.getAdminId(), appointment.getDate(), appointment.getTime());
 
+        Appointment saved = appointmentRepository.save(appointment);
         log.info("Agendamento {} cancelado", appointmentId);
-        return appointment;
+        return saved;
     }
 
     /**
@@ -84,12 +79,12 @@ public class AppointmentService {
     @Transactional
     public Appointment completeAppointment(String appointmentId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() -> new AppointmentNotFoundException(appointmentId));
 
         appointment.setStatus(AppointmentStatus.COMPLETED);
         Appointment saved = appointmentRepository.save(appointment);
-
         log.info("Agendamento {} concluído", appointmentId);
+
         return saved;
     }
 }

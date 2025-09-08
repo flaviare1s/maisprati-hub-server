@@ -1,5 +1,7 @@
 package com.maisprati.hub.application.service;
 
+import com.maisprati.hub.domain.exception.DayNotFoundException;
+import com.maisprati.hub.domain.exception.SlotUnavailableException;
 import com.maisprati.hub.domain.model.TimeSlot;
 import com.maisprati.hub.domain.model.TimeSlotDay;
 import com.maisprati.hub.infrastructure.persistence.repository.TimeSlotDayRepository;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -40,17 +43,17 @@ public class TimeSlotDayService {
      * Marcar slot como agendado (booked=true, available=false).
      */
     @Transactional
-    public TimeSlotDay markSlotAsBooked(String adminId, LocalDate date, String time) {
+    public TimeSlotDay markSlotAsBooked(String adminId, LocalDate date, LocalTime time) {
         TimeSlotDay day = timeSlotDayRepository.findByAdminIdAndDate(adminId, date)
-                .orElseThrow(() -> new RuntimeException("Dia não encontrado"));
+                .orElseThrow(() -> new DayNotFoundException("Dia não encontrado"));
 
         TimeSlot slot = day.getSlots().stream()
                 .filter(s -> s.getTime().equals(time))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Horário não encontrado"));
+                .orElseThrow(() -> new SlotUnavailableException("Horário não encontrado"));
 
         if (!slot.isAvailable() || slot.isBooked()) {
-            throw new RuntimeException("Horário indisponível");
+            throw new SlotUnavailableException("Horário indisponível");
         }
 
         slot.setBooked(true);
@@ -65,9 +68,9 @@ public class TimeSlotDayService {
      * Liberar um slot (booked=false, available=true).
      */
     @Transactional
-    public void releaseSlot(String adminId, LocalDate date, String time) {
+    public void releaseSlot(String adminId, LocalDate date, LocalTime time) {
         TimeSlotDay day = timeSlotDayRepository.findByAdminIdAndDate(adminId, date)
-                .orElseThrow(() -> new RuntimeException("Dia não encontrado"));
+                .orElseThrow(() -> new DayNotFoundException("Dia não encontrado"));
 
         day.getSlots().stream()
                 .filter(s -> s.getTime().equals(time))
