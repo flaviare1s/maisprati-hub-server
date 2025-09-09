@@ -12,6 +12,6 @@ import lombok.Builder;
 public class TimeSlot {
 
     private String time;
-    private Boolean available;
-    private Boolean booked;
+    private boolean available;
+    private boolean booked;
 }
