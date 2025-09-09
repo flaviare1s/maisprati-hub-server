@@ -19,6 +19,8 @@ public class TimeSlotDay {
 
     @Id
     private String id;
+    private String adminId;
+    private String studentId;
 
     private LocalDate date;
     private List<TimeSlot> slots;
