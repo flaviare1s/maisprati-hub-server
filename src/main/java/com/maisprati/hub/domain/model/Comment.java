@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import jakarta.validation.constraints.NotBlank;
@@ -28,7 +29,8 @@ public class Comment {
 
     @NotBlank
     private String content;
-
-    private Boolean isActive;
     private LocalDateTime createdAt;
+
+    @DBRef
+    private User author;
 }
