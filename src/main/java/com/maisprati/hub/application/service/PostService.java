@@ -1,9 +1,11 @@
 package com.maisprati.hub.application.service;
 
 import com.maisprati.hub.domain.model.Post;
+import com.maisprati.hub.infrastructure.persistence.repository.CommentRepository;
 import com.maisprati.hub.infrastructure.persistence.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.Optional;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
 
     public List<Post> getAllPosts() {
         return postRepository.findAll();
@@ -39,7 +42,9 @@ public class PostService {
         return Optional.empty();
     }
 
+    @Transactional
     public void deletePost(String postId) {
+        commentRepository.deleteAllByPostId(postId);
         postRepository.deleteById(postId);
     }
 
