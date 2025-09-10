@@ -17,7 +17,18 @@ public class ProjectPhase {
     private Integer id;
     private String title;
     private PhaseStatus status;
-    private String assignedTo; // userId
+    private String assignedTo;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
+
+    public ProjectPhase(String title, PhaseStatus status) {
+        this.title = title;
+        this.status = status;
+    }
+
+    public ProjectPhase(Integer id, String title, PhaseStatus status) {
+        this.id = id;
+        this.title = title;
+        this.status = status;
+    }
 }
