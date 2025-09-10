@@ -4,6 +4,7 @@ import com.maisprati.hub.domain.model.Appointment;
 import com.maisprati.hub.application.service.AppointmentService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -71,6 +72,7 @@ public class AppointmentController {
     }
 
     // Classe interna para receber dados do appointment
+    @Setter
     @Getter
     public static class CreateAppointmentRequest {
         // Getters e Setters
@@ -80,14 +82,5 @@ public class AppointmentController {
         private LocalDate date;
         private LocalTime time;
 
-        public void setStudentId(String studentId) { this.studentId = studentId; }
-
-        public void setAdminId(String adminId) { this.adminId = adminId; }
-
-        public void setTeamId(String teamId) { this.teamId = teamId; }
-
-        public void setDate(LocalDate date) { this.date = date; }
-
-        public void setTime(LocalTime time) { this.time = time; }
     }
 }
