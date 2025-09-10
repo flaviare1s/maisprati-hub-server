@@ -1,5 +1,6 @@
 package com.maisprati.hub.presentation.controller;
 
+import com.maisprati.hub.application.dto.CommentDTO;
 import com.maisprati.hub.domain.model.Comment;
 import com.maisprati.hub.application.service.CommentService;
 import lombok.RequiredArgsConstructor;
@@ -16,34 +17,30 @@ public class CommentController {
     private final CommentService commentService;
 
     @GetMapping("/api/posts/{postId}/comments")
-    public ResponseEntity<List<Comment>> getCommentsByPost(@PathVariable String postId) {
-        List<Comment> comments = commentService.getCommentsByPostId(postId);
+    public ResponseEntity<List<CommentDTO>> getCommentsByPost(@PathVariable String postId) {
+        List<CommentDTO> comments = commentService.getCommentsByPostId(postId);
         return ResponseEntity.ok(comments);
     }
 
     @PostMapping("/api/posts/{postId}/comments")
-    public ResponseEntity<Comment> createComment(
+    public ResponseEntity<CommentDTO> createComment(
             @PathVariable String postId,
             @RequestBody Comment comment
     ) {
-        comment.setPostId(postId);
-        Comment created = commentService.createComment(comment);
+        CommentDTO created = commentService.createComment(comment, comment.getAuthorId());
         return ResponseEntity.ok(created);
     }
 
-    @PutMapping("/api/comments/{id}")
-    public ResponseEntity<Comment> updateComment(
-            @PathVariable String id,
-            @RequestBody Comment comment
-    ) {
-        Optional<Comment> updated = commentService.updateComment(id, comment.getContent());
-        return updated.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    @DeleteMapping("/api/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(@PathVariable String commentId) {
+        commentService.deleteComment(commentId);
+        return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/api/comments/{id}")
-    public ResponseEntity<Void> deleteComment(@PathVariable String id) {
-        commentService.deleteComment(id);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/api/comments/{commentId}")
+    public ResponseEntity<CommentDTO> updateComment(@PathVariable String commentId, @RequestBody Comment comment) {
+        CommentDTO updated = commentService.updateComment(commentId, String.valueOf(comment));
+        return ResponseEntity.ok(updated);
     }
 }
+
