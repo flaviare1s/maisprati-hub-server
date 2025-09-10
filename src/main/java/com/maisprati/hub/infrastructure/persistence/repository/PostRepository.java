@@ -7,5 +7,4 @@ import java.util.List;
 
 public interface PostRepository extends MongoRepository<Post, String> {
     List<Post> findAllByAuthorId(String authorId);
-    List<Post> findAllByIsActiveTrueOrderByCreatedAtDesc();
 }

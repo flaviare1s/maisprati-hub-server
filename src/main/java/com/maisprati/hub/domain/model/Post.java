@@ -29,9 +29,6 @@ public class Post {
 
     @NotBlank
     private String content;
-
-    private PostType postType;
-    private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

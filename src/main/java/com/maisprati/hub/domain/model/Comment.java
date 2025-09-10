@@ -28,7 +28,5 @@ public class Comment {
 
     @NotBlank
     private String content;
-
-    private Boolean isActive;
     private LocalDateTime createdAt;
 }
