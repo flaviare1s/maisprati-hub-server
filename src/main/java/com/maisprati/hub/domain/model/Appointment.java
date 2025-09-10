@@ -36,8 +36,6 @@ public class Appointment {
     private LocalDate date;
     private LocalTime time;
     private AppointmentStatus status;
-    private String notes;
-    private String meetingLink;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
