@@ -21,6 +21,7 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final TimeSlotDayService timeSlotDayService;
+    private final NotificationService notificationService;
 
     private final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -52,6 +53,8 @@ public class AppointmentService {
         log.info("Agendamento criado: aluno {} no time {} às {} ({})",
                 studentId, teamId, time.format(TIME_FORMATTER), date);
 
+        notificationService.createNotificationForAppointment(saved, "SCHEDULED");
+
         return saved;
     }
 
@@ -70,6 +73,7 @@ public class AppointmentService {
         timeSlotDayService.releaseSlot(appointment.getAdminId(), appointment.getDate(), appointment.getTime());
 
         Appointment saved = appointmentRepository.save(appointment);
+        notificationService.createNotificationForAppointment(saved, "CANCELLED");
         log.info("Agendamento {} cancelado", appointmentId);
         return saved;
     }
@@ -84,6 +88,7 @@ public class AppointmentService {
 
         appointment.setStatus(AppointmentStatus.COMPLETED);
         Appointment saved = appointmentRepository.save(appointment);
+        notificationService.createNotificationForAppointment(saved, "COMPLETED");
         log.info("Agendamento {} concluído", appointmentId);
 
         return saved;

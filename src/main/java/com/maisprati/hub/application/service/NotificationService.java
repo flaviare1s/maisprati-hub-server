@@ -1,5 +1,6 @@
 package com.maisprati.hub.application.service;
 
+import com.maisprati.hub.domain.model.Appointment;
 import com.maisprati.hub.domain.model.Notification;
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.infrastructure.persistence.repository.NotificationRepository;
@@ -9,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -147,5 +149,51 @@ public class NotificationService {
                 .data(data)
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+    /**
+     * Cria notificação para agendamentos
+     */
+    public Notification createNotificationForAppointment(Appointment appointment, String eventType) {
+        String userId = appointment.getStudentId();
+        String title;
+        String message;
+
+        switch (eventType) {
+            case "SCHEDULED":
+                title = "Nova reunião marcada";
+                message = "Sua reunião foi marcada para "
+                        + appointment.getDate() + " às " + appointment.getTime().format(DateTimeFormatter.ofPattern("HH:mm"));
+                break;
+            case "CANCELLED":
+                title = "Reunião cancelada";
+                message = "Sua reunião do dia " + appointment.getDate() + " às "
+                        + appointment.getTime().format(DateTimeFormatter.ofPattern("HH:mm")) + " foi cancelada.";
+                break;
+            case "COMPLETED":
+                title = "Reunião concluída";
+                message = "Sua reunião do dia " + appointment.getDate() + " às "
+                        + appointment.getTime().format(DateTimeFormatter.ofPattern("HH:mm")) + " foi concluída.";
+                break;
+            default:
+                title = "Atualização de reunião";
+                message = "Houve uma atualização na sua reunião.";
+        }
+
+        Notification notification = Notification.builder()
+                .userId(userId)
+                .type("appointment_" + eventType.toLowerCase())
+                .title(title)
+                .message(message)
+                .data(Map.of(
+                        "appointmentId", appointment.getId(),
+                        "status", appointment.getStatus().name()
+                ))
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Notification savedNotification = notificationRepository.save(notification);
+        log.info("Notificação criada para usuário: {}, evento: {}", userId, eventType);
+        return savedNotification;
     }
 }
