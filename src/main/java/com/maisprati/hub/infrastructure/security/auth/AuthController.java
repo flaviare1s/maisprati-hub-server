@@ -2,6 +2,7 @@ package com.maisprati.hub.infrastructure.security.auth;
 
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.application.service.UserService;
+import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -97,5 +98,20 @@ public class AuthController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				       .body(Map.of("error", e.getMessage()));
 		}
+	}
+	
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+		var user = userService.getUserByEmail(request.getEmail()).orElse(null);
+		
+		if (user == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+				       .body(Map.of("error", "Usuário não encontrado"));
+		}
+		
+		// TODO: gerar o token
+		return ResponseEntity.ok(Map.of(
+			"message", "O link para redefinição de senha será enviado se o usuário existir."
+		));
 	}
 }
