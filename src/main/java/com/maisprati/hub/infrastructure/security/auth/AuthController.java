@@ -1,7 +1,10 @@
 package com.maisprati.hub.infrastructure.security.auth;
 
+import com.maisprati.hub.domain.model.PasswordResetToken;
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.application.service.UserService;
+import com.maisprati.hub.infrastructure.persistence.repository.PasswordResetTokenRepository;
+import com.maisprati.hub.infrastructure.util.TokenGenerator;
 import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -40,6 +44,7 @@ public class AuthController {
 	
 	private final UserService userService;
 	private final AuthService authService;
+	private final PasswordResetTokenRepository resetTokenRepository;
 	
 	/**
 	 * POST api/auth/register - Cadastra um aluno
@@ -109,9 +114,18 @@ public class AuthController {
 				       .body(Map.of("error", "Usuário não encontrado"));
 		}
 		
-		// TODO: gerar o token
-		return ResponseEntity.ok(Map.of(
-			"message", "O link para redefinição de senha será enviado se o usuário existir."
-		));
+		String rawToken = TokenGenerator.generateToken(32); // 32 bytes ≈ 43 chars
+		String tokenHash = DigestUtils.md5DigestAsHex(rawToken.getBytes());
+		
+		PasswordResetToken resetToken = new PasswordResetToken();
+		resetToken.setUserId(user.getId());
+		resetToken.setTokenHash(tokenHash);
+		resetToken.setExpiresAt(java.time.LocalDateTime.now().plusMinutes(30));
+		resetToken.setUsed(false);
+		
+		resetTokenRepository.save(resetToken);
+		
+		// Só para DEV/TEST, em produção, nunca retornar o token!
+		return ResponseEntity.ok("Token de redefinição gerado (verifique seu e-mail). Token DEV: " + rawToken);
 	}
 }
