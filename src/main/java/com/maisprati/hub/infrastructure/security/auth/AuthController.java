@@ -1,5 +1,6 @@
 package com.maisprati.hub.infrastructure.security.auth;
 
+import com.maisprati.hub.application.service.EmailService;
 import com.maisprati.hub.domain.model.PasswordResetToken;
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.application.service.UserService;
@@ -44,6 +45,7 @@ public class AuthController {
 	
 	private final UserService userService;
 	private final AuthService authService;
+	private final EmailService emailService;
 	private final PasswordResetTokenRepository resetTokenRepository;
 	
 	/**
@@ -124,6 +126,7 @@ public class AuthController {
 		resetToken.setUsed(false);
 		
 		resetTokenRepository.save(resetToken);
+		emailService.sendPasswordResetEmail(user.getEmail(),  rawToken);
 		
 		// Só para DEV/TEST, em produção, nunca retornar o token!
 		return ResponseEntity.ok("Token de redefinição gerado (verifique seu e-mail). Token DEV: " + rawToken);
