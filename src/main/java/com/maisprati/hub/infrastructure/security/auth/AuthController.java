@@ -7,15 +7,18 @@ import com.maisprati.hub.application.service.UserService;
 import com.maisprati.hub.infrastructure.persistence.repository.PasswordResetTokenRepository;
 import com.maisprati.hub.infrastructure.util.TokenGenerator;
 import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
+import com.maisprati.hub.presentation.dto.ResetPasswordRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -130,5 +133,36 @@ public class AuthController {
 		
 		// Só para DEV/TEST, em produção, nunca retornar o token!
 		return ResponseEntity.ok("Token de redefinição gerado (verifique seu e-mail). Token DEV: " + rawToken);
+	}
+	
+	@PostMapping("/reset-password")
+	public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+		String tokenHash = DigestUtils.md5DigestAsHex(request.getToken().getBytes());
+		
+		var resetOptional = resetTokenRepository.findByTokenHash(tokenHash);
+		if (resetOptional.isEmpty()) {
+			return ResponseEntity.status(404).body("Token inválido");
+		}
+		
+		var resetToken = resetOptional.get();
+		if (resetToken.isUsed() || resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+			return ResponseEntity.status(410).body("Token expirado ou já usado");
+		}
+		
+		var user = userService.getUserById(resetToken.getUserId()).orElse(null);
+		if (user == null) {
+			return ResponseEntity.status(404).body("Usuário não encontrado");
+		}
+		
+		// atualiza a senha
+		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+		user.setPassword(encoder.encode(request.getNewPassword()));
+		userService.updateUser(user);
+		
+		// invalida token
+		resetToken.setUsed(true);
+		resetTokenRepository.save(resetToken);
+		
+		return ResponseEntity.ok("Senha atualizada com sucesso!");
 	}
 }
