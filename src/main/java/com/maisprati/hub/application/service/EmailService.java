@@ -13,7 +13,7 @@ public class EmailService {
 	
 	public void sendPasswordResetEmail(String to, String token) {
 		// TODO: URL do front que vai renderizar o formulário
-		String resetUrl = "http://localhost:5173/reset-password?token=" + token;
+		String resetUrl = "http://localhost:5173/new-password?token=" + token;
 		
 		SimpleMailMessage message = new SimpleMailMessage();
 		message.setTo(to);
