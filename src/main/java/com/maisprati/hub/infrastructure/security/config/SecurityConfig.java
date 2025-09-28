@@ -60,7 +60,12 @@ public class SecurityConfig {
 			.csrf(AbstractHttpConfigurer::disable) // CSRF desabilitado para APIs REST
       .cors(cors -> cors.configurationSource(corsConfigurationSource())) // habilita CORS
 			.authorizeHttpRequests(auth -> auth
-				                               .requestMatchers("api/auth/login", "api/auth/register").permitAll() // rotas públicas
+				                               // rotas públicas
+				                               .requestMatchers(
+																				 "/api/auth/login", "/api/auth/register",
+					                               "/api/auth/forgot-password", "/api/auth/reset-password"
+				                               ).permitAll()
+				                               // rotas privadas
 				                               .anyRequest().authenticated() // qualquer outra rota requer token válido
 			)
 			.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class); // integra o filtro JWT

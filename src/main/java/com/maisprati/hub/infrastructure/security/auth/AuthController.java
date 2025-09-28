@@ -1,7 +1,10 @@
 package com.maisprati.hub.infrastructure.security.auth;
 
+import com.maisprati.hub.application.service.PasswordResetService;
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.application.service.UserService;
+import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
+import com.maisprati.hub.presentation.dto.ResetPasswordRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,6 +42,7 @@ public class AuthController {
 	
 	private final UserService userService;
 	private final AuthService authService;
+	private final PasswordResetService passwordResetService;
 	
 	/**
 	 * POST api/auth/register - Cadastra um aluno
@@ -96,6 +100,30 @@ public class AuthController {
 			log.error("Erro ao buscar usuário atual: {}", e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				       .body(Map.of("error", e.getMessage()));
+		}
+	}
+	
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+		try {
+			passwordResetService.generateAndSendToken(request.getEmail());
+			return ResponseEntity.ok(
+				Map.of("message", "Se o e-mail existir, enviaremos um link de redefinição")
+			);
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+		}
+	}
+	
+	@PostMapping("/reset-password")
+	public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+		try {
+			passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+			return ResponseEntity.ok(
+				Map.of("message", "Senha atualizada com sucesso!")
+			);
+		} catch (RuntimeException e) {
+			return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
 		}
 	}
 }
