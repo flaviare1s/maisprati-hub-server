@@ -1,11 +1,8 @@
 package com.maisprati.hub.infrastructure.security.auth;
 
-import com.maisprati.hub.application.service.EmailService;
-import com.maisprati.hub.domain.model.PasswordResetToken;
+import com.maisprati.hub.application.service.PasswordResetService;
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.application.service.UserService;
-import com.maisprati.hub.infrastructure.persistence.repository.PasswordResetTokenRepository;
-import com.maisprati.hub.infrastructure.util.TokenGenerator;
 import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
 import com.maisprati.hub.presentation.dto.ResetPasswordRequest;
 import lombok.RequiredArgsConstructor;
@@ -14,11 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -48,8 +42,7 @@ public class AuthController {
 	
 	private final UserService userService;
 	private final AuthService authService;
-	private final EmailService emailService;
-	private final PasswordResetTokenRepository resetTokenRepository;
+	private final PasswordResetService passwordResetService;
 	
 	/**
 	 * POST api/auth/register - Cadastra um aluno
@@ -112,57 +105,25 @@ public class AuthController {
 	
 	@PostMapping("/forgot-password")
 	public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-		var user = userService.getUserByEmail(request.getEmail()).orElse(null);
-		
-		if (user == null) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-				       .body(Map.of("error", "Usuário não encontrado"));
+		try {
+			passwordResetService.generateAndSendToken(request.getEmail());
+			return ResponseEntity.ok(
+				Map.of("message", "Se o e-mail existir, enviaremos um link de redefinição")
+			);
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
 		}
-		
-		String rawToken = TokenGenerator.generateToken(32); // 32 bytes ≈ 43 chars
-		String tokenHash = DigestUtils.md5DigestAsHex(rawToken.getBytes());
-		
-		PasswordResetToken resetToken = new PasswordResetToken();
-		resetToken.setUserId(user.getId());
-		resetToken.setTokenHash(tokenHash);
-		resetToken.setExpiresAt(java.time.LocalDateTime.now().plusMinutes(30));
-		resetToken.setUsed(false);
-		
-		resetTokenRepository.save(resetToken);
-		emailService.sendPasswordResetEmail(user.getEmail(),  rawToken);
-		
-		// Só para DEV/TEST, em produção, nunca retornar o token!
-		return ResponseEntity.ok("Token de redefinição gerado (verifique seu e-mail). Token DEV: " + rawToken);
 	}
 	
 	@PostMapping("/reset-password")
 	public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
-		String tokenHash = DigestUtils.md5DigestAsHex(request.getToken().getBytes());
-		
-		var resetOptional = resetTokenRepository.findByTokenHash(tokenHash);
-		if (resetOptional.isEmpty()) {
-			return ResponseEntity.status(404).body("Token inválido");
+		try {
+			passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+			return ResponseEntity.ok(
+				Map.of("message", "Senha atualizada com sucesso!")
+			);
+		} catch (RuntimeException e) {
+			return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
 		}
-		
-		var resetToken = resetOptional.get();
-		if (resetToken.isUsed() || resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-			return ResponseEntity.status(410).body("Token expirado ou já usado");
-		}
-		
-		var user = userService.getUserById(resetToken.getUserId()).orElse(null);
-		if (user == null) {
-			return ResponseEntity.status(404).body("Usuário não encontrado");
-		}
-		
-		// atualiza a senha
-		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-		user.setPassword(encoder.encode(request.getNewPassword()));
-		userService.updateUser(user);
-		
-		// invalida token
-		resetToken.setUsed(true);
-		resetTokenRepository.save(resetToken);
-		
-		return ResponseEntity.ok("Senha atualizada com sucesso!");
 	}
 }
