@@ -5,13 +5,13 @@ import com.maisprati.hub.domain.enums.UserType;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Serviço responsável pela lógica de negócios relacionada a usuários.
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class UserService {
 	
 	private final UserRepository userRepository;
-	private final BCryptPasswordEncoder passwordEncoder;
+	private final PasswordEncoder passwordEncoder;
 	
 	/**
 	 * Registra um aluno no sistema
@@ -60,7 +60,7 @@ public class UserService {
 		if (user.getName() != null) existing.setName(user.getName());
 		if (user.getEmail() != null) existing.setEmail(user.getEmail());
 		if (user.getPassword() != null) {
-			existing.setPassword(passwordEncoder.encode(user.getPassword()));
+			existing.setPassword(user.getPassword()); // já vem criptografada
 		}
 		existing.setUpdatedAt(LocalDateTime.now());
 		
