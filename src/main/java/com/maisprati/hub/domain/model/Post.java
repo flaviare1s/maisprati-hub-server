@@ -1,6 +1,5 @@
 package com.maisprati.hub.domain.model;
 
-import com.maisprati.hub.domain.enums.PostType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
