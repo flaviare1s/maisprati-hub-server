@@ -91,6 +91,30 @@ public class AuthController {
 	}
 	
 	/**
+	 * POST api/auth/logout - Faz logout do usuário
+	 */
+	@PostMapping("/logout")
+	public ResponseEntity<?> logout() {
+		try {
+			// cria um cookie "vazio" para sobrescrever o anterior e expirar imediatamente
+			ResponseCookie cookie = ResponseCookie.from("access_token", "")
+				                        .httpOnly(true)
+				                        .secure(jwtProperties.isSecureCookie())
+				                        .path("/")
+				                        .sameSite("Strict")
+				                        .maxAge(0) // expira imediatamente
+				                        .build();
+			
+			return ResponseEntity.ok()
+				       .header(HttpHeaders.SET_COOKIE, cookie.toString())
+				       .body(Map.of("message", "Logout realizado com sucesso!"));
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				       .body(Map.of("error", e.getMessage()));
+		}
+	}
+	
+	/**
 	 * GET api/auth/me - Busca dados do usuário autenticado
 	 */
 	@GetMapping("/me")
