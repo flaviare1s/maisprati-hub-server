@@ -14,4 +14,7 @@ public class JwtProperties {
 	
 	/** Expiração do token em segundos */
 	private long expirationSeconds;
+	
+	/** Uso de cookies seguros definido por profile */
+	private boolean secureCookie;
 }
