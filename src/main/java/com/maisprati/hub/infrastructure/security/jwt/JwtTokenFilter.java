@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,8 +18,8 @@ import java.io.IOException;
 /**
  * Filtro de autenticação JWT.
  * <p>
- * Este filtro intercepta cada requisição HTTP, extrai o token JWT do cabeçalho
- * "Authorization", valida o token e, caso seja válido, adiciona as informações
+ * Este filtro intercepta cada requisição HTTP, extrai o token JWT do cookie,
+ * valida o token e, caso seja válido, adiciona as informações
  * do usuário autenticado no contexto de segurança do Spring.
  * </p>
  *
@@ -39,6 +40,7 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtTokenFilter extends OncePerRequestFilter {
 	
 	private final JwtService jwtService;
@@ -47,41 +49,52 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(@NotNull HttpServletRequest request,
 	                                @NotNull HttpServletResponse response,
-	                                @NotNull FilterChain filterChain) throws ServletException, IOException {
+	                                @NotNull FilterChain filterChain
+	) throws ServletException, IOException {
 		
-		// Recupera o token do header Authorization
+		// Recupera o token dos cookies
 		String token = this.recoverToken(request);
 		
-		if (token != null) {
-			// Extrai o email do token
-			String username = jwtService.extractUsername(token);
-			
-			// Só continua se o username existir e ainda não houver autenticação no contexto
-			if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-				// Busca o usuário no banco pelo email
-				userRepository.findByEmail(username)
-					.filter(u -> jwtService.validateToken(token, u))
-					.ifPresent(userDetails -> {
-						var authentication = new UsernamePasswordAuthenticationToken(
-							userDetails, null, userDetails.getAuthorities()
-						);
-						SecurityContextHolder.getContext().setAuthentication(authentication);
-					});
+		try {
+			if (token != null) {
+				// Extrai o email do token
+				String username = jwtService.extractUsername(token);
+				
+				// Só continua se o username existir e ainda não houver autenticação no contexto
+				if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+					// Busca o usuário no banco pelo email
+					userRepository.findByEmail(username)
+						.filter(u -> jwtService.validateToken(token, u))
+						.ifPresent(userDetails -> {
+							var authentication = new UsernamePasswordAuthenticationToken(
+								userDetails, null, userDetails.getAuthorities()
+							);
+							SecurityContextHolder.getContext().setAuthentication(authentication);
+						});
+				}
 			}
+		} catch (Exception e) {
+			log.error("JWT inválido ou expirado: {}", e.getMessage());
 		}
 		// Continua a cadeia de filtros
 		filterChain.doFilter(request, response);
 	}
 	
 	/**
-	 * Recupera o token JWT do header Authorization.
+	 * Recupera o token JWT do cookie "access_token".
+	 *
 	 * @param request requisição HTTP
-	 * @return token sem "Bearer ", ou null se não existir
+	 * @return token extraído do cookie, ou null se não existir
 	 */
 	private String recoverToken(HttpServletRequest request) {
-		String header = request.getHeader("Authorization");
-		
-		if (header == null || !header.startsWith("Bearer ")) return null;
-		return header.replace("Bearer ", "");
+		// pega do Cookie "access_token"
+		if (request.getCookies() != null) {
+			for (var cookie : request.getCookies()) {
+				if ("access_token".equals(cookie.getName())) {
+					return cookie.getValue();
+				}
+			}
+		}
+		return null;
 	}
 }
