@@ -122,17 +122,20 @@ public class AuthController {
 		try {
 			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 			
-			if (authentication == null || !authentication.isAuthenticated()) {
+			// verifica se é null ou se é anônimo
+			if (authentication == null ||
+				    authentication.getPrincipal() == null ||
+				    authentication.getPrincipal().equals("anonymousUser")) {
 				return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					       .body(Map.of("error", "Usuário não autenticado"));
 			}
 			
 			String email = authentication.getName();
-			User user = userService.getUserByEmail(email)
-				            .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-			
-			return ResponseEntity.ok(user);
-		} catch (RuntimeException e) {
+			return userService.getUserByEmail(email)
+				       .<ResponseEntity<?>>map(ResponseEntity::ok)
+				       .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					                        .body(Map.of("error", "Usuário não encontrado")));
+		} catch (Exception e) {
 			log.error("Erro ao buscar usuário atual: {}", e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				       .body(Map.of("error", e.getMessage()));
