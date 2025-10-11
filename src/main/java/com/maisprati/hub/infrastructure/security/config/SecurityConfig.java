@@ -1,6 +1,7 @@
 package com.maisprati.hub.infrastructure.security.config;
 
 import com.maisprati.hub.infrastructure.security.jwt.JwtTokenFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -58,7 +60,10 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 			.csrf(AbstractHttpConfigurer::disable) // CSRF desabilitado para APIs REST
-      .cors(cors -> cors.configurationSource(corsConfigurationSource())) // habilita CORS
+			.cors(cors -> cors.configurationSource(corsConfigurationSource())) // habilita CORS
+			.sessionManagement(session -> session
+				                              // API sem sessão — cada requisição deve ser autenticada com token
+				                              .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
 				                               // rotas públicas
 				                               .requestMatchers(
@@ -67,6 +72,16 @@ public class SecurityConfig {
 				                               ).permitAll()
 				                               // rotas privadas
 				                               .anyRequest().authenticated() // qualquer outra rota requer token válido
+			)
+			// configuração de erro para requisições sem autenticação
+			.exceptionHandling(exception -> exception
+				                                .authenticationEntryPoint(
+					                                (request,
+					                                 response,
+					                                 authException
+					                                ) -> response.sendError(
+						                                HttpServletResponse.SC_UNAUTHORIZED, "Usuário não autenticado")
+				                                )
 			)
 			.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class); // integra o filtro JWT
 		return http.build();
