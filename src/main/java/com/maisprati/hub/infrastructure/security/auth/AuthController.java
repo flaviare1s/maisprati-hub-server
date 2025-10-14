@@ -74,9 +74,11 @@ public class AuthController {
 			// criar cookie com token
 			ResponseCookie cookie = ResponseCookie.from("access_token", token)
 				                        .httpOnly(true)
-				                        .secure(jwtProperties.isSecureCookie())
+				                        .secure(jwtProperties.isSecureCookie()) // false em dev, true em prod
 				                        .path("/")
-				                        .sameSite("Strict")
+				                        .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax") // Lax - dev, None - prod
+				                        // None: cookie pode ser enviado em cross-site requests
+				                        // Lax: cookie é enviado em requisições AJAX (axios) para outra porta no mesmo host
 				                        .maxAge(jwtProperties.getExpirationSeconds())
 				                        .build();
 			log.info("Set-Cookie enviado: {}", cookie.toString());
@@ -101,7 +103,7 @@ public class AuthController {
 				                        .httpOnly(true)
 				                        .secure(jwtProperties.isSecureCookie())
 				                        .path("/")
-				                        .sameSite("Strict")
+				                        .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax") // Lax - dev, None - prod
 				                        .maxAge(0) // expira imediatamente
 				                        .build();
 			

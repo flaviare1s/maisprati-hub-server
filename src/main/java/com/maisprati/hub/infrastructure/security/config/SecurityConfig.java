@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -67,9 +68,11 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				                               // rotas públicas
 				                               .requestMatchers(
-																				 "/api/auth/login", "/api/auth/register",
+					                               "/api/auth/login", "/api/auth/register",
 					                               "/api/auth/forgot-password", "/api/auth/reset-password"
 				                               ).permitAll()
+				                               // permitir OPTIONS sem autenticação (preflight do navegador)
+				                               .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				                               // rotas privadas
 				                               .anyRequest().authenticated() // qualquer outra rota requer token válido
 			)
@@ -86,15 +89,15 @@ public class SecurityConfig {
 			.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class); // integra o filtro JWT
 		return http.build();
 	}
-
+	
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://maisprati-hub.vercel.app"));
-		configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS", "PATCH"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 		configuration.setAllowedHeaders(List.of("*"));
-		configuration.setAllowCredentials(true);
-
+		configuration.setAllowCredentials(true); // envio de COOKIE nas requisições do frontend
+		
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;
