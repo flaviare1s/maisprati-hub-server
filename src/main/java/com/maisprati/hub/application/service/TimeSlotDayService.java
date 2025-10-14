@@ -111,7 +111,7 @@ public class TimeSlotDayService {
     @Transactional(readOnly = true)
     public List<TimeSlotDay> getSlotsByAdminAndMonth(String adminId, int year, int month) {
         LocalDate start = LocalDate.of(year, month, 1);
-        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        LocalDate end = start.plusMonths(1);
         return timeSlotDayRepository.findByAdminIdAndDateBetween(adminId, start, end);
     }
 }
