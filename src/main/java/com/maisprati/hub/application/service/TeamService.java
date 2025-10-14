@@ -175,7 +175,6 @@ public class TeamService {
 
         // Atualizar usuário (marcar como tendo grupo)
         user.setHasGroup(true);
-        user.setIsFirstLogin(false);
         userRepository.save(user);
 
         // Notificar admin sobre entrada no time

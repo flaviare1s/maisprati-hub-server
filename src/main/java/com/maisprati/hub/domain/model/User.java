@@ -70,7 +70,6 @@ public class User implements UserDetails {
 	private String groupClass;
 	private Boolean hasGroup;
 	private Boolean wantsGroup;
-	private Boolean isFirstLogin;
 	private String codename;
 	private String avatar;
 

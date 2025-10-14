@@ -39,7 +39,6 @@ public class DataInitializer implements CommandLineRunner {
                 .type(UserType.ADMIN)
                 .codename("Edu da Codifica")
                 .avatar("/images/avatar/avatares 54.png")
-                .isFirstLogin(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
