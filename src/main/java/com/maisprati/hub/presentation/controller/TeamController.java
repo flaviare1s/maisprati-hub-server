@@ -157,7 +157,7 @@ public class TeamController {
             String description = request.get("description");
 
             Team updatedTeam = teamService.updateTeamBasicData(teamId, name, description);
-            
+
             Optional<Team> teamWithUserData = teamService.getTeamByIdWithUserData(teamId);
             return teamWithUserData.map(ResponseEntity::ok)
                     .orElse(ResponseEntity.ok(updatedTeam));
