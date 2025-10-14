@@ -3,17 +3,21 @@ package com.maisprati.hub.application.service;
 import com.maisprati.hub.domain.model.Appointment;
 import com.maisprati.hub.domain.model.Notification;
 import com.maisprati.hub.domain.model.User;
+import com.maisprati.hub.domain.model.Team;
 import com.maisprati.hub.infrastructure.persistence.repository.NotificationRepository;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
+import com.maisprati.hub.infrastructure.persistence.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +26,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final TeamRepository teamRepository; // Adicionar dependência do TeamRepository
 
     /**
      * Buscar todas as notificações de um usuário
@@ -152,48 +157,242 @@ public class NotificationService {
     }
 
     /**
-     * Cria notificação para agendamentos
+     * Cria notificações para agendamentos (para todos os envolvidos)
      */
-    public Notification createNotificationForAppointment(Appointment appointment, String eventType) {
-        String userId = appointment.getStudentId();
-        String title;
-        String message;
+    public void createNotificationForAppointment(Appointment appointment, String eventType) {
+        try {
+            // Formatadores para data brasileira
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+            String formattedDate = appointment.getDate().format(dateFormatter);
+            String formattedTime = appointment.getTime().format(timeFormatter);
+
+            // Buscar dados do time se existir
+            String teamName = null;
+            List<String> teamMemberIds = new ArrayList<>();
+
+            if (appointment.getTeamId() != null) {
+                Optional<Team> teamOpt = teamRepository.findById(appointment.getTeamId());
+                if (teamOpt.isPresent()) {
+                    Team team = teamOpt.get();
+                    teamName = team.getName();
+                    teamMemberIds = team.getMembers().stream()
+                            .map(member -> member.getUserId()) // Assumindo que Member tem getUserId()
+                            .collect(Collectors.toList());
+                }
+            }
+
+            // Se tem time, tratar como reunião do time
+            if (appointment.getTeamId() != null && teamName != null) {
+                handleTeamAppointmentNotifications(
+                        appointment, eventType, formattedDate, formattedTime,
+                        teamName, teamMemberIds
+                );
+            } else {
+                // Reunião individual
+                handleIndividualAppointmentNotifications(
+                        appointment, eventType, formattedDate, formattedTime
+                );
+            }
+
+        } catch (Exception e) {
+            log.error("Erro ao criar notificações para appointment: {}", appointment.getId(), e);
+        }
+    }
+
+    /**
+     * Trata notificações para reuniões de time
+     */
+    private void handleTeamAppointmentNotifications(
+            Appointment appointment, String eventType, String formattedDate, String formattedTime,
+            String teamName, List<String> teamMemberIds) {
+
+        String studentId = appointment.getStudentId();
+        String adminId = appointment.getAdminId();
 
         switch (eventType) {
             case "SCHEDULED":
-                title = "Nova reunião marcada";
-                message = "Sua reunião foi marcada para "
-                        + appointment.getDate() + " às " + appointment.getTime().format(DateTimeFormatter.ofPattern("HH:mm"));
+                // Notificar admin sobre reunião do time
+                createNotification(Notification.builder()
+                        .userId(adminId)
+                        .type("team_appointment_scheduled")
+                        .title("Nova reunião do time")
+                        .message("O time " + teamName + " agendou uma reunião para " + formattedDate + " às " + formattedTime)
+                        .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+
+                // Notificar outros membros do time (exceto quem agendou)
+                teamMemberIds.stream()
+                        .filter(memberId -> !memberId.equals(studentId))
+                        .forEach(memberId -> createNotification(Notification.builder()
+                                .userId(memberId)
+                                .type("team_appointment_scheduled")
+                                .title("Nova reunião do time")
+                                .message("O time " + teamName + " agendou uma reunião para " + formattedDate + " às " + formattedTime)
+                                .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                                .createdAt(LocalDateTime.now())
+                                .build()));
+
+                // Notificar quem agendou (mensagem específica)
+                createNotification(Notification.builder()
+                        .userId(studentId)
+                        .type("appointment_scheduled")
+                        .title("Reunião agendada")
+                        .message("Você agendou uma reunião para o time " + teamName + " em " + formattedDate + " às " + formattedTime)
+                        .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                        .createdAt(LocalDateTime.now())
+                        .build());
                 break;
+
             case "CANCELLED":
-                title = "Reunião cancelada";
-                message = "Sua reunião do dia " + appointment.getDate() + " às "
-                        + appointment.getTime().format(DateTimeFormatter.ofPattern("HH:mm")) + " foi cancelada.";
+                // Assumindo que você tem uma forma de determinar quem cancelou
+                // Por agora, vou assumir que se veio do controller do admin, foi admin que cancelou
+                boolean canceledByAdmin = false; // Você pode passar isso como parâmetro adicional
+
+                String adminMessage = canceledByAdmin
+                        ? "Você cancelou a reunião do time " + teamName + " marcada para " + formattedDate + " às " + formattedTime
+                        : "O time " + teamName + " cancelou a reunião marcada para " + formattedDate + " às " + formattedTime;
+
+                String memberMessage = canceledByAdmin
+                        ? "O professor cancelou a reunião do time " + teamName + " marcada para " + formattedDate + " às " + formattedTime
+                        : "O time " + teamName + " cancelou a reunião marcada para " + formattedDate + " às " + formattedTime;
+
+                // Notificar admin
+                createNotification(Notification.builder()
+                        .userId(adminId)
+                        .type("team_appointment_cancelled")
+                        .title("Reunião do time cancelada")
+                        .message(adminMessage)
+                        .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+
+                // Notificar membros do time (exceto quem cancelou, se foi estudante)
+                teamMemberIds.stream()
+                        .filter(memberId -> canceledByAdmin || !memberId.equals(studentId))
+                        .forEach(memberId -> createNotification(Notification.builder()
+                                .userId(memberId)
+                                .type("team_appointment_cancelled")
+                                .title("Reunião do time cancelada")
+                                .message(memberMessage)
+                                .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                                .createdAt(LocalDateTime.now())
+                                .build()));
+
+                // Notificar quem cancelou (se foi estudante)
+                if (!canceledByAdmin) {
+                    createNotification(Notification.builder()
+                            .userId(studentId)
+                            .type("appointment_cancelled")
+                            .title("Reunião cancelada")
+                            .message("Você cancelou a reunião do time " + teamName + " marcada para " + formattedDate + " às " + formattedTime)
+                            .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                            .createdAt(LocalDateTime.now())
+                            .build());
+                }
                 break;
+
             case "COMPLETED":
-                title = "Reunião concluída";
-                message = "Sua reunião do dia " + appointment.getDate() + " às "
-                        + appointment.getTime().format(DateTimeFormatter.ofPattern("HH:mm")) + " foi concluída.";
+                // Notificar admin
+                createNotification(Notification.builder()
+                        .userId(adminId)
+                        .type("team_appointment_completed")
+                        .title("Reunião do time concluída")
+                        .message("A reunião do time " + teamName + " do dia " + formattedDate + " às " + formattedTime + " foi concluída")
+                        .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+
+                // Notificar todos os membros do time
+                teamMemberIds.forEach(memberId -> createNotification(Notification.builder()
+                        .userId(memberId)
+                        .type("team_appointment_completed")
+                        .title("Reunião do time concluída")
+                        .message("A reunião do time " + teamName + " do dia " + formattedDate + " às " + formattedTime + " foi concluída")
+                        .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                        .createdAt(LocalDateTime.now())
+                        .build()));
                 break;
-            default:
-                title = "Atualização de reunião";
-                message = "Houve uma atualização na sua reunião.";
         }
+    }
 
-        Notification notification = Notification.builder()
-                .userId(userId)
-                .type("appointment_" + eventType.toLowerCase())
-                .title(title)
-                .message(message)
-                .data(Map.of(
-                        "appointmentId", appointment.getId(),
-                        "status", appointment.getStatus().name()
-                ))
-                .createdAt(LocalDateTime.now())
-                .build();
+    /**
+     * Trata notificações para reuniões individuais
+     */
+    private void handleIndividualAppointmentNotifications(
+            Appointment appointment, String eventType, String formattedDate, String formattedTime) {
 
-        Notification savedNotification = notificationRepository.save(notification);
-        log.info("Notificação criada para usuário: {}, evento: {}", userId, eventType);
-        return savedNotification;
+        String studentId = appointment.getStudentId();
+        String adminId = appointment.getAdminId();
+
+        switch (eventType) {
+            case "SCHEDULED":
+                // Notificar admin
+                createNotification(Notification.builder()
+                        .userId(adminId)
+                        .type("appointment_scheduled")
+                        .title("Nova reunião agendada")
+                        .message("Um aluno agendou uma reunião para " + formattedDate + " às " + formattedTime)
+                        .data(Map.of("appointmentId", appointment.getId()))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+
+                // Notificar estudante
+                createNotification(Notification.builder()
+                        .userId(studentId)
+                        .type("appointment_scheduled")
+                        .title("Nova reunião marcada")
+                        .message("Sua reunião foi marcada para " + formattedDate + " às " + formattedTime)
+                        .data(Map.of("appointmentId", appointment.getId()))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+                break;
+
+            case "CANCELLED":
+                // Notificar admin
+                createNotification(Notification.builder()
+                        .userId(adminId)
+                        .type("appointment_cancelled")
+                        .title("Reunião cancelada")
+                        .message("A reunião marcada para " + formattedDate + " às " + formattedTime + " foi cancelada")
+                        .data(Map.of("appointmentId", appointment.getId()))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+
+                // Notificar estudante
+                createNotification(Notification.builder()
+                        .userId(studentId)
+                        .type("appointment_cancelled")
+                        .title("Reunião cancelada")
+                        .message("Sua reunião do dia " + formattedDate + " às " + formattedTime + " foi cancelada.")
+                        .data(Map.of("appointmentId", appointment.getId()))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+                break;
+
+            case "COMPLETED":
+                // Notificar admin
+                createNotification(Notification.builder()
+                        .userId(adminId)
+                        .type("appointment_completed")
+                        .title("Reunião concluída")
+                        .message("A reunião do dia " + formattedDate + " às " + formattedTime + " foi concluída")
+                        .data(Map.of("appointmentId", appointment.getId()))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+
+                // Notificar estudante
+                createNotification(Notification.builder()
+                        .userId(studentId)
+                        .type("appointment_completed")
+                        .title("Reunião concluída")
+                        .message("Sua reunião do dia " + formattedDate + " às " + formattedTime + " foi concluída.")
+                        .data(Map.of("appointmentId", appointment.getId()))
+                        .createdAt(LocalDateTime.now())
+                        .build());
+                break;
+        }
     }
 }
