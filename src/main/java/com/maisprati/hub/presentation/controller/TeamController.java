@@ -148,6 +148,25 @@ public class TeamController {
         }
     }
 
+    @PutMapping("/{teamId}")
+    public ResponseEntity<Team> updateTeam(
+            @PathVariable String teamId,
+            @RequestBody Map<String, String> request) {
+        try {
+            String name = request.get("name");
+            String description = request.get("description");
+
+            Team updatedTeam = teamService.updateTeamBasicData(teamId, name, description);
+
+            Optional<Team> teamWithUserData = teamService.getTeamByIdWithUserData(teamId);
+            return teamWithUserData.map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.ok(updatedTeam));
+        } catch (Exception e) {
+            log.error("Erro ao atualizar dados do time: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     /**
      * DELETE /api/teams/{teamId}/members/{userId} - Remover membro do time
      */

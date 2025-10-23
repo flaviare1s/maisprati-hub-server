@@ -175,7 +175,6 @@ public class TeamService {
 
         // Atualizar usuário (marcar como tendo grupo)
         user.setHasGroup(true);
-        user.setIsFirstLogin(false);
         userRepository.save(user);
 
         // Notificar admin sobre entrada no time
@@ -292,5 +291,20 @@ public class TeamService {
         } while (teamRepository.existsBySecurityCode(securityCode));
 
         return securityCode;
+    }
+
+    public Team updateTeamBasicData(String teamId, String name, String description) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new RuntimeException("Time não encontrado"));
+
+        if (name != null && !name.trim().isEmpty()) {
+            team.setName(name.trim());
+        }
+
+        if (description != null) {
+            team.setDescription(description.trim());
+        }
+
+        return teamRepository.save(team);
     }
 }

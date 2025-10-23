@@ -1,15 +1,18 @@
 package com.maisprati.hub.infrastructure.security.config;
 
 import com.maisprati.hub.infrastructure.security.jwt.JwtTokenFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -58,28 +61,43 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 			.csrf(AbstractHttpConfigurer::disable) // CSRF desabilitado para APIs REST
-      .cors(cors -> cors.configurationSource(corsConfigurationSource())) // habilita CORS
+			.cors(cors -> cors.configurationSource(corsConfigurationSource())) // habilita CORS
+			.sessionManagement(session -> session
+				                              // API sem sessão — cada requisição deve ser autenticada com token
+				                              .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
 				                               // rotas públicas
 				                               .requestMatchers(
-																				 "/api/auth/login", "/api/auth/register",
+					                               "/api/auth/login", "/api/auth/register",
 					                               "/api/auth/forgot-password", "/api/auth/reset-password"
 				                               ).permitAll()
+				                               // permitir OPTIONS sem autenticação (preflight do navegador)
+				                               .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				                               // rotas privadas
 				                               .anyRequest().authenticated() // qualquer outra rota requer token válido
+			)
+			// configuração de erro para requisições sem autenticação
+			.exceptionHandling(exception -> exception
+				                                .authenticationEntryPoint(
+					                                (request,
+					                                 response,
+					                                 authException
+					                                ) -> response.sendError(
+						                                HttpServletResponse.SC_UNAUTHORIZED, "Usuário não autenticado")
+				                                )
 			)
 			.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class); // integra o filtro JWT
 		return http.build();
 	}
-
+	
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-		configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS", "PATCH"));
+		configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://maisprati-hub.vercel.app"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 		configuration.setAllowedHeaders(List.of("*"));
-		configuration.setAllowCredentials(true);
-
+		configuration.setAllowCredentials(true); // envio de COOKIE nas requisições do frontend
+		
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;
