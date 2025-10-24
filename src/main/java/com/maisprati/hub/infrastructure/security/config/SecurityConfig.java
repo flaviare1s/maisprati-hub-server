@@ -1,6 +1,11 @@
 package com.maisprati.hub.infrastructure.security.config;
 
+import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
+import com.maisprati.hub.infrastructure.security.jwt.JwtProperties;
+import com.maisprati.hub.infrastructure.security.jwt.JwtService;
 import com.maisprati.hub.infrastructure.security.jwt.JwtTokenFilter;
+import com.maisprati.hub.infrastructure.security.oauth2.CustomOAuth2UserService;
+import com.maisprati.hub.infrastructure.security.oauth2.OAuth2SuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +41,9 @@ import java.util.List;
 public class SecurityConfig {
 	
 	private final JwtTokenFilter jwtTokenFilter;
+	private final JwtService jwtService;
+	private final JwtProperties jwtProperties;
+	private final UserRepository userRepository;
 	
 	/**
 	 * Bean para criptografia de senhas usando BCrypt.
@@ -51,6 +59,16 @@ public class SecurityConfig {
 	@Bean
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
 		return authConfig.getAuthenticationManager();
+	}
+	
+	@Bean
+	public CustomOAuth2UserService customOAuth2UserService() {
+		return new CustomOAuth2UserService(userRepository);
+	}
+	
+	@Bean
+	public OAuth2SuccessHandler oAuth2SuccessHandler() {
+		return new OAuth2SuccessHandler(jwtService, jwtProperties, userRepository);
 	}
 	
 	/**
@@ -69,12 +87,20 @@ public class SecurityConfig {
 				                               // rotas públicas
 				                               .requestMatchers(
 					                               "/api/auth/login", "/api/auth/register",
-					                               "/api/auth/forgot-password", "/api/auth/reset-password"
+					                               "/api/auth/forgot-password", "/api/auth/reset-password",
+					                               "/oauth2/**", "/login/oauth2/**"
 				                               ).permitAll()
 				                               // permitir OPTIONS sem autenticação (preflight do navegador)
 				                               .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				                               // rotas privadas
 				                               .anyRequest().authenticated() // qualquer outra rota requer token válido
+			)
+			.oauth2Login(oauth -> oauth
+				                      .loginPage("/api/auth/login")
+				                      .userInfoEndpoint(userInfo -> userInfo.userService(
+																customOAuth2UserService())
+				                      )
+				                      .successHandler(oAuth2SuccessHandler()) // gera JWT e redireciona
 			)
 			// configuração de erro para requisições sem autenticação
 			.exceptionHandling(exception -> exception
