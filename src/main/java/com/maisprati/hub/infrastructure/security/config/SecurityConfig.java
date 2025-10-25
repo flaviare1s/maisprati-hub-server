@@ -1,8 +1,5 @@
 package com.maisprati.hub.infrastructure.security.config;
 
-import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
-import com.maisprati.hub.infrastructure.security.jwt.JwtProperties;
-import com.maisprati.hub.infrastructure.security.jwt.JwtService;
 import com.maisprati.hub.infrastructure.security.jwt.JwtTokenFilter;
 import com.maisprati.hub.infrastructure.security.oauth2.CustomOAuth2UserService;
 import com.maisprati.hub.infrastructure.security.oauth2.OAuth2SuccessHandler;
@@ -11,21 +8,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 /**
  * Configuração de segurança da aplicação.
@@ -33,7 +23,6 @@ import java.util.List;
  * <p>Define o encoder de senhas, as rotas públicas e privadas,
  * e integra o filtro JWT para validação de autenticação.</p>
  */
-
 @Configuration
 @EnableMethodSecurity
 @EnableWebSecurity
@@ -41,35 +30,9 @@ import java.util.List;
 public class SecurityConfig {
 	
 	private final JwtTokenFilter jwtTokenFilter;
-	private final JwtService jwtService;
-	private final JwtProperties jwtProperties;
-	private final UserRepository userRepository;
-	
-	/**
-	 * Bean para criptografia de senhas usando BCrypt.
-	 */
-	@Bean
-	public BCryptPasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
-	
-	/**
-	 * Bean que expõe o AuthenticationManager, necessário para autenticação.
-	 */
-	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-		return authConfig.getAuthenticationManager();
-	}
-	
-	@Bean
-	public CustomOAuth2UserService customOAuth2UserService() {
-		return new CustomOAuth2UserService(userRepository);
-	}
-	
-	@Bean
-	public OAuth2SuccessHandler oAuth2SuccessHandler() {
-		return new OAuth2SuccessHandler(jwtService, jwtProperties, userRepository);
-	}
+	private final CustomOAuth2UserService customOAuth2UserService;
+	private final OAuth2SuccessHandler oAuth2SuccessHandler;
+	private final CorsConfigurationSource corsConfigurationSource;
 	
 	/**
 	 * Configura o HttpSecurity definindo rotas públicas e privadas,
@@ -79,7 +42,7 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 			.csrf(AbstractHttpConfigurer::disable) // CSRF desabilitado para APIs REST
-			.cors(cors -> cors.configurationSource(corsConfigurationSource())) // habilita CORS
+			.cors(cors -> cors.configurationSource(corsConfigurationSource)) // habilita CORS
 			.sessionManagement(session -> session
 				                              // API sem sessão — cada requisição deve ser autenticada com token
 				                              .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -96,11 +59,10 @@ public class SecurityConfig {
 				                               .anyRequest().authenticated() // qualquer outra rota requer token válido
 			)
 			.oauth2Login(oauth -> oauth
-				                      .loginPage("/api/auth/login")
 				                      .userInfoEndpoint(userInfo -> userInfo.userService(
-																customOAuth2UserService())
+					                      customOAuth2UserService)
 				                      )
-				                      .successHandler(oAuth2SuccessHandler()) // gera JWT e redireciona
+				                      .successHandler(oAuth2SuccessHandler) // gera JWT e redireciona
 			)
 			// configuração de erro para requisições sem autenticação
 			.exceptionHandling(exception -> exception
@@ -114,18 +76,5 @@ public class SecurityConfig {
 			)
 			.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class); // integra o filtro JWT
 		return http.build();
-	}
-	
-	@Bean
-	public CorsConfigurationSource corsConfigurationSource() {
-		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://maisprati-hub.vercel.app"));
-		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-		configuration.setAllowedHeaders(List.of("*"));
-		configuration.setAllowCredentials(true); // envio de COOKIE nas requisições do frontend
-		
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/**", configuration);
-		return source;
 	}
 }
