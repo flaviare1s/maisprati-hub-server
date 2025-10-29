@@ -3,6 +3,7 @@ package com.maisprati.hub.infrastructure.security.jwt;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -53,47 +54,53 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 	) throws ServletException, IOException {
 		
 		// Recupera o token dos cookies
-		String token = this.recoverToken(request);
+		String accessToken = this.getCookie(request, "access_token");
+		String refreshToken = this.getCookie(request, "refresh_token");
 		
 		try {
-			if (token != null) {
-				// Extrai o email do token
-				String username = jwtService.extractUsername(token);
+			if (accessToken != null && jwtService.isAccessTokenValid(accessToken)) {
+				authenticateUser(accessToken, request);
+			}
+			else if (refreshToken != null && jwtService.isRefreshTokenValid(refreshToken)) {
+				log.info("Access token expirado. Realizando refresh automático…");
 				
-				// Só continua se o username existir e ainda não houver autenticação no contexto
-				if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-					// Busca o usuário no banco pelo email
-					userRepository.findByEmail(username)
-						.filter(u -> jwtService.validateToken(token, u))
-						.ifPresent(userDetails -> {
-							var authentication = new UsernamePasswordAuthenticationToken(
-								userDetails, null, userDetails.getAuthorities()
-							);
-							SecurityContextHolder.getContext().setAuthentication(authentication);
-						});
+				String newAccess = jwtService.refreshAccessToken(refreshToken);
+				
+				if (newAccess != null) {
+					jwtService.addAccessTokenToResponse(response, newAccess);
+					authenticateUser(newAccess, request);
+					log.info("Refresh token OK, usuário autenticado novamente ✨");
+				}
+				else {
+					log.warn("Refresh token inválido ou expirado.");
 				}
 			}
 		} catch (Exception e) {
-			log.error("JWT inválido ou expirado: {}", e.getMessage());
+			log.error("Erro durante validação/refresh JWT: {}", e.getMessage());
 		}
 		// Continua a cadeia de filtros
 		filterChain.doFilter(request, response);
 	}
 	
-	/**
-	 * Recupera o token JWT do cookie "access_token".
-	 *
-	 * @param request requisição HTTP
-	 * @return token extraído do cookie, ou null se não existir
-	 */
-	private String recoverToken(HttpServletRequest request) {
-		// pega do Cookie "access_token"
-		if (request.getCookies() != null) {
-			for (var cookie : request.getCookies()) {
-				if ("access_token".equals(cookie.getName())) {
-					return cookie.getValue();
-				}
-			}
+	private void authenticateUser(String token, HttpServletRequest request) {
+		String username = jwtService.extractUsernameFromAccessToken(token);
+		if (username == null) return;
+		
+		userRepository.findByEmail(username).ifPresent(userDetails -> {
+			var auth = new UsernamePasswordAuthenticationToken(
+				userDetails,
+				null,
+				userDetails.getAuthorities()
+			);
+			auth.setDetails(request);
+			SecurityContextHolder.getContext().setAuthentication(auth);
+		});
+	}
+	
+	private String getCookie(HttpServletRequest request, String name) {
+		if (request.getCookies() == null) return null;
+		for (Cookie cookie : request.getCookies()) {
+			if (name.equals(cookie.getName())) return cookie.getValue();
 		}
 		return null;
 	}
