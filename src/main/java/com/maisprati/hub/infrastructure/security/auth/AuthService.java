@@ -47,9 +47,9 @@ public class AuthService implements UserDetailsService {
 	}
 	
 	/**
-	 * Realiza login e retorna o token JWT
+	 * Realiza login e retorna os tokens JWT (de acesso e atualização)
 	 */
-	public String login(String email, String password) {
+	public AuthTokens login(String email, String password) {
 		User user = userRepository.findByEmail(email)
 			            .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 		
@@ -58,7 +58,9 @@ public class AuthService implements UserDetailsService {
 			throw new RuntimeException("Credenciais inválidas");
 		}
 		
-		// Retorna o token JWT
-		return jwtService.generateToken(user);
+		String accessToken = jwtService.generateAccessToken(user);
+		String refreshToken = jwtService.generateRefreshToken(user);
+		
+		return new AuthTokens(accessToken, refreshToken);
 	}
 }
