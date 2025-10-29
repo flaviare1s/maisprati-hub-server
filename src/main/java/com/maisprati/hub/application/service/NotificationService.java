@@ -26,7 +26,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
-    private final TeamRepository teamRepository; // Adicionar dependência do TeamRepository
+    private final TeamRepository teamRepository;
 
     /**
      * Buscar todas as notificações de um usuário
@@ -178,7 +178,7 @@ public class NotificationService {
                     Team team = teamOpt.get();
                     teamName = team.getName();
                     teamMemberIds = team.getMembers().stream()
-                            .map(member -> member.getUserId()) // Assumindo que Member tem getUserId()
+                            .map(member -> member.getUserId())
                             .collect(Collectors.toList());
                 }
             }
@@ -247,51 +247,28 @@ public class NotificationService {
                 break;
 
             case "CANCELLED":
-                // Assumindo que você tem uma forma de determinar quem cancelou
-                // Por agora, vou assumir que se veio do controller do admin, foi admin que cancelou
-                boolean canceledByAdmin = false; // Você pode passar isso como parâmetro adicional
-
-                String adminMessage = canceledByAdmin
-                        ? "Você cancelou a reunião do time " + teamName + " marcada para " + formattedDate + " às " + formattedTime
-                        : "O time " + teamName + " cancelou a reunião marcada para " + formattedDate + " às " + formattedTime;
-
-                String memberMessage = canceledByAdmin
-                        ? "O professor cancelou a reunião do time " + teamName + " marcada para " + formattedDate + " às " + formattedTime
-                        : "O time " + teamName + " cancelou a reunião marcada para " + formattedDate + " às " + formattedTime;
+                // Mensagem padrão para todos
+                String cancelMessage = "A reunião do time " + teamName + " marcada para " + formattedDate + " às " + formattedTime + " foi cancelada";
 
                 // Notificar admin
                 createNotification(Notification.builder()
                         .userId(adminId)
                         .type("team_appointment_cancelled")
                         .title("Reunião do time cancelada")
-                        .message(adminMessage)
+                        .message(cancelMessage)
                         .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
                         .createdAt(LocalDateTime.now())
                         .build());
 
-                // Notificar membros do time (exceto quem cancelou, se foi estudante)
-                teamMemberIds.stream()
-                        .filter(memberId -> canceledByAdmin || !memberId.equals(studentId))
-                        .forEach(memberId -> createNotification(Notification.builder()
-                                .userId(memberId)
-                                .type("team_appointment_cancelled")
-                                .title("Reunião do time cancelada")
-                                .message(memberMessage)
-                                .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
-                                .createdAt(LocalDateTime.now())
-                                .build()));
-
-                // Notificar quem cancelou (se foi estudante)
-                if (!canceledByAdmin) {
-                    createNotification(Notification.builder()
-                            .userId(studentId)
-                            .type("appointment_cancelled")
-                            .title("Reunião cancelada")
-                            .message("Você cancelou a reunião do time " + teamName + " marcada para " + formattedDate + " às " + formattedTime)
-                            .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
-                            .createdAt(LocalDateTime.now())
-                            .build());
-                }
+                // Notificar todos os membros do time
+                teamMemberIds.forEach(memberId -> createNotification(Notification.builder()
+                        .userId(memberId)
+                        .type("team_appointment_cancelled")
+                        .title("Reunião do time cancelada")
+                        .message(cancelMessage)
+                        .data(Map.of("appointmentId", appointment.getId(), "teamName", teamName))
+                        .createdAt(LocalDateTime.now())
+                        .build()));
                 break;
 
             case "COMPLETED":
@@ -351,12 +328,15 @@ public class NotificationService {
                 break;
 
             case "CANCELLED":
+                // Mensagem padrão para reunião individual
+                String cancelMessage = "A reunião marcada para " + formattedDate + " às " + formattedTime + " foi cancelada";
+
                 // Notificar admin
                 createNotification(Notification.builder()
                         .userId(adminId)
                         .type("appointment_cancelled")
                         .title("Reunião cancelada")
-                        .message("A reunião marcada para " + formattedDate + " às " + formattedTime + " foi cancelada")
+                        .message(cancelMessage)
                         .data(Map.of("appointmentId", appointment.getId()))
                         .createdAt(LocalDateTime.now())
                         .build());
@@ -366,7 +346,7 @@ public class NotificationService {
                         .userId(studentId)
                         .type("appointment_cancelled")
                         .title("Reunião cancelada")
-                        .message("Sua reunião do dia " + formattedDate + " às " + formattedTime + " foi cancelada.")
+                        .message(cancelMessage)
                         .data(Map.of("appointmentId", appointment.getId()))
                         .createdAt(LocalDateTime.now())
                         .build());
