@@ -43,13 +43,10 @@ public class SecurityConfig {
 		http
 			.csrf(AbstractHttpConfigurer::disable) // CSRF desabilitado para APIs REST
 			.cors(cors -> cors.configurationSource(corsConfigurationSource)) // habilita CORS
-			.sessionManagement(session -> session
-				                              // API sem sessão — cada requisição deve ser autenticada com token
-				                              .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
 				                               // rotas públicas
 				                               .requestMatchers(
-					                               "/api/auth/login", "/api/auth/register",
+					                               "/api/auth/login", "/api/auth/register", "/api/auth/refresh",
 					                               "/api/auth/forgot-password", "/api/auth/reset-password",
 					                               "/oauth2/**", "/login/oauth2/**"
 				                               ).permitAll()
@@ -58,6 +55,9 @@ public class SecurityConfig {
 				                               // rotas privadas
 				                               .anyRequest().authenticated() // qualquer outra rota requer token válido
 			)
+			.sessionManagement(session -> session
+				                              // API sem sessão — cada requisição deve ser autenticada com token
+				                              .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.oauth2Login(oauth -> oauth
 				                      .userInfoEndpoint(userInfo -> userInfo.userService(
 					                      customOAuth2UserService)
