@@ -4,6 +4,7 @@ import com.maisprati.hub.application.service.PasswordResetService;
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.application.service.UserService;
 import com.maisprati.hub.infrastructure.security.jwt.JwtProperties;
+import com.maisprati.hub.infrastructure.security.jwt.JwtService;
 import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
 import com.maisprati.hub.presentation.dto.ResetPasswordRequest;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class AuthController {
 	private final AuthService authService;
 	private final PasswordResetService passwordResetService;
 	private final JwtProperties jwtProperties;
+	private final JwtService jwtService;
 	
 	/**
 	 * POST api/auth/register - Cadastra um aluno
@@ -59,8 +61,7 @@ public class AuthController {
 				       .body(Map.of("message", "Cadastro realizado com sucesso!"));
 		} catch (RuntimeException e) {
 			log.error("Erro ao cadastrar aluno: {}", e.getMessage(), e);
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-				       .body(Map.of("error", e.getMessage()));
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
 		}
 	}
 	
@@ -70,25 +71,35 @@ public class AuthController {
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody User user) {
 		try {
-			String token = authService.login(user.getEmail(), user.getPassword());
-			// criar cookie com token
-			ResponseCookie cookie = ResponseCookie.from("access_token", token)
-				                        .httpOnly(true)
-				                        .secure(jwtProperties.isSecureCookie()) // false em dev, true em prod
-				                        .path("/")
-				                        .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax") // Lax - dev, None - prod
-				                        // None: cookie pode ser enviado em cross-site requests
-				                        // Lax: cookie é enviado em requisições AJAX (axios) para outra porta no mesmo host
-				                        .maxAge(jwtProperties.getExpirationSeconds())
-				                        .build();
-			log.info("Set-Cookie enviado: {}", cookie.toString());
+			var tokens = authService.login(user.getEmail(), user.getPassword());
+			
+			ResponseCookie accessCookie = ResponseCookie.from("access_token", tokens.accessToken())
+				                              .httpOnly(true)
+				                              .secure(jwtProperties.isSecureCookie()) // false em dev, true em prod
+				                              .path("/")
+				                              .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
+							                        // None: cookie pode ser enviado em requisições cross-site
+							                        // Lax: cookie é enviado em requisições (axios) para outra porta no mesmo host
+							                        .maxAge(jwtProperties.getAccessTokenExpiration())
+							                        .build();
+			
+			ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", tokens.refreshToken())
+				                               .httpOnly(true)
+				                               .secure(jwtProperties.isSecureCookie())
+				                               .path("/")
+				                               .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
+				                               .maxAge(jwtProperties.getRefreshTokenExpiration())
+				                               .build();
+			
+			log.info("Access-Cookie: {}", accessCookie);
+			log.info("Refresh-Cookie: {}", refreshCookie);
+			
 			return ResponseEntity.ok()
-				       .header(HttpHeaders.SET_COOKIE, cookie.toString())
+				       .header(HttpHeaders.SET_COOKIE, accessCookie.toString(), refreshCookie.toString())
 				       .body(Map.of("message", "Login realizado com sucesso!"));
 		} catch (RuntimeException e) {
 			log.error("Erro ao fazer login: {}", e.getMessage(), e);
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-				       .body(Map.of("error", e.getMessage()));
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
 		}
 	}
 	
@@ -99,20 +110,28 @@ public class AuthController {
 	public ResponseEntity<?> logout() {
 		try {
 			// cria um cookie "vazio" para sobrescrever o anterior e expirar imediatamente
-			ResponseCookie cookie = ResponseCookie.from("access_token", "")
-				                        .httpOnly(true)
-				                        .secure(jwtProperties.isSecureCookie())
-				                        .path("/")
-				                        .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax") // Lax - dev, None - prod
-				                        .maxAge(0) // expira imediatamente
-				                        .build();
+			ResponseCookie expiredAccess = ResponseCookie.from("access_token", "")
+				                               .httpOnly(true)
+				                               .secure(jwtProperties.isSecureCookie())
+				                               .path("/")
+				                               .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
+				                               .maxAge(0) // expira imediatamente
+				                               .build();
 			
+			ResponseCookie expiredRefresh = ResponseCookie.from("refresh_token", "")
+				                                .httpOnly(true)
+				                                .secure(jwtProperties.isSecureCookie())
+				                                .path("/")
+				                                .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
+				                                .maxAge(0)
+				                                .build();
+
 			return ResponseEntity.ok()
-				       .header(HttpHeaders.SET_COOKIE, cookie.toString())
+				       .header(HttpHeaders.SET_COOKIE, expiredAccess.toString(), expiredRefresh.toString())
 				       .body(Map.of("message", "Logout realizado com sucesso!"));
 		} catch (RuntimeException e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				       .body(Map.of("error", e.getMessage()));
+			log.error("Erro ao fazer logout: {}", e.getMessage(), e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
 		}
 	}
 	
@@ -126,8 +145,9 @@ public class AuthController {
 			
 			// verifica se é null ou se é anônimo
 			if (authentication == null ||
-				    authentication.getPrincipal() == null ||
-				    authentication.getPrincipal().equals("anonymousUser")) {
+					authentication.getPrincipal() == null ||
+					authentication.getPrincipal().equals("anonymousUser")
+			) {
 				return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					       .body(Map.of("error", "Usuário não autenticado"));
 			}
@@ -139,8 +159,7 @@ public class AuthController {
 					                        .body(Map.of("error", "Usuário não encontrado")));
 		} catch (Exception e) {
 			log.error("Erro ao buscar usuário atual: {}", e.getMessage(), e);
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				       .body(Map.of("error", e.getMessage()));
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
 		}
 	}
 	
@@ -160,11 +179,52 @@ public class AuthController {
 	public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
 		try {
 			passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
-			return ResponseEntity.ok(
-				Map.of("message", "Senha atualizada com sucesso!")
-			);
+			return ResponseEntity.ok(Map.of("message", "Senha atualizada com sucesso!"));
 		} catch (RuntimeException e) {
 			return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+		}
+	}
+	
+	@PostMapping("/refresh")
+	public ResponseEntity<?> refreshToken(
+		@CookieValue(value = "refresh_token", required = false) String refreshToken) {
+		log.info("Entrou no endpoint /refresh");
+		log.info("Refresh token recebido: {}", refreshToken);
+		
+		if (refreshToken == null || refreshToken.isBlank()) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Refresh token ausente"));
+		}
+		
+		try {
+			String email = jwtService.extractUsernameFromRefreshToken(refreshToken);
+			if (email == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					       .body(Map.of("error", "Token inválido ou expirado"));
+			}
+			
+			User user = userService.getUserByEmail(email).orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+			
+			// gera novo access token
+			String newAccessToken = jwtService.generateAccessToken(user);
+			
+			ResponseCookie newAccessCookie = ResponseCookie.from("access_token", newAccessToken)
+				                                 .httpOnly(true)
+				                                 .secure(jwtProperties.isSecureCookie())
+				                                 .path("/")
+				                                 .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
+				                                 .maxAge(jwtProperties.getAccessTokenExpiration())
+				                                 .build();
+			
+			log.info("New-Access-Cookie: {}", newAccessCookie);
+			
+			return ResponseEntity.ok()
+				       .header(HttpHeaders.SET_COOKIE, newAccessCookie.toString())
+				       .body(Map.of("message", "Access token renovado com sucesso!"));
+			
+		} catch (Exception e) {
+			log.error("Erro ao renovar token: {}", e.getMessage(), e);
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+				       .body(Map.of("error", "Falha ao validar refresh token"));
 		}
 	}
 }

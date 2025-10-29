@@ -1,14 +1,15 @@
 package com.maisprati.hub.infrastructure.security.jwt;
 
 import com.maisprati.hub.domain.model.User;
+import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -20,6 +21,7 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtService {
 	
+	private final UserRepository userRepository;
 	private final JwtProperties jwtProperties;
 	private Key signingKey;
 	
@@ -38,19 +40,12 @@ public class JwtService {
 		}
 	}
 	
-	/**
-	 * Gera token JWT para o usuário com expiração customizada.
-	 *
-	 * @param user usuário que terá o token gerado
-	 * @param expirationSeconds tempo em segundos até o token expirar
-	 * @return token JWT
-	 */
-	public String generateToken(User user, long expirationSeconds) {
+	public String generateAccessToken(User user, long expirationSeconds) {
 		Instant now = Instant.now();
 		return Jwts.builder()
 			       .setSubject(user.getEmail())
 			       .claim("id", user.getId())
-			       .claim("type", user.getType().getName())
+			       .claim("type", "access")
 			       .claim("role", user.getType().getName())
 			       .setIssuedAt(Date.from(now))
 			       .setExpiration(Date.from(now.plusSeconds(expirationSeconds)))
@@ -58,61 +53,90 @@ public class JwtService {
 			       .compact();
 	}
 	
-	/**
-	 * Gera token JWT com expiração padrão definida em application.properties
-	 *
-	 * @param user usuário que terá o token gerado
-	 * @return token JWT como {@code String}
-	 */
-	public String generateToken(User user) {
-		return generateToken(user, jwtProperties.getExpirationSeconds());
+	public String generateAccessToken(User user) {
+		return generateAccessToken(user, jwtProperties.getAccessTokenExpiration());
 	}
 	
-	/**
-	 * Extrai o username (email) do token JWT.
-	 *
-	 * @param token token JWT
-	 * @return username ou {@code null} se token expirou ou for inválido
-	 */
-	public String extractUsername(String token) {
+	public String generateRefreshToken(User user) {
+		Instant now = Instant.now();
+		return Jwts.builder()
+			       .setSubject(user.getEmail())
+			       .claim("id", user.getId())
+			       .claim("type", "refresh")
+			       .claim("role", user.getType().getName())
+			       .setIssuedAt(Date.from(now))
+			       .setExpiration(Date.from(now.plusSeconds(jwtProperties.getRefreshTokenExpiration())))
+			       .signWith(signingKey, SignatureAlgorithm.HS512)
+			       .compact();
+	}
+	
+	public String extractUsernameFromAccessToken(String token) {
 		try {
 			Claims claims = Jwts.parserBuilder()
 				                .setSigningKey(signingKey)
 				                .build()
 				                .parseClaimsJws(token)
 				                .getBody();
-			return claims.getSubject();
-		} catch (ExpiredJwtException e) {
+			return "access".equals(claims.get("type")) ? claims.getSubject() : null;
+		} catch (Exception e) {
 			return null;
-		} catch (Exception e) {
-			return null; // Token inválido
 		}
 	}
 	
-	/**
-	 * Valida se o token é válido:
-	 * <ol>
-	 *   <li>Username do token bate com o usuário fornecido</li>
-	 *   <li>Token ainda não expirou</li>
-	 * </ol>
-	 *
-	 * @param token token JWT
-	 * @param userDetails objeto {@code UserDetails} do usuário
-	 * @return {@code true} se token válido, {@code false} caso contrário
-	 */
-	public boolean validateToken(String token, UserDetails userDetails) {
+	public String extractUsernameFromRefreshToken(String token) {
 		try {
 			Claims claims = Jwts.parserBuilder()
 				                .setSigningKey(signingKey)
 				                .build()
 				                .parseClaimsJws(token)
 				                .getBody();
-			return claims.getSubject().equals(userDetails.getUsername())
-				       && claims.getExpiration().after(new Date());
-		} catch (ExpiredJwtException e) {
-			return false;
+			return "refresh".equals(claims.get("type")) ? claims.getSubject() : null;
 		} catch (Exception e) {
-			return false; // Token inválido
+			return null;
 		}
+	}
+	
+	public boolean isAccessTokenValid(String token) {
+		try {
+			Claims claims = Jwts.parserBuilder()
+				                .setSigningKey(signingKey)
+				                .build()
+				                .parseClaimsJws(token)
+				                .getBody();
+			return "access".equals(claims.get("type")) && claims.getExpiration().after(new Date());
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	public boolean isRefreshTokenValid(String token) {
+		try {
+			Claims claims = Jwts.parserBuilder()
+				                .setSigningKey(signingKey)
+				                .build()
+				                .parseClaimsJws(token)
+				                .getBody();
+			return "refresh".equals(claims.get("type")) && claims.getExpiration().after(new Date());
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	public String refreshAccessToken(String refreshToken) {
+		String username = extractUsernameFromRefreshToken(refreshToken);
+		if (username == null) return null;
+		
+		var user = userRepository.findByEmail(username).orElse(null);
+		if (user == null) return null;
+		
+		return generateAccessToken(user);
+	}
+	
+	public void addAccessTokenToResponse(HttpServletResponse response, String accessToken) {
+		Cookie cookie = new Cookie("access_token", accessToken);
+		cookie.setHttpOnly(true);
+		cookie.setPath("/");
+		cookie.setMaxAge((int) jwtProperties.getAccessTokenExpiration());
+		response.addCookie(cookie);
 	}
 }
