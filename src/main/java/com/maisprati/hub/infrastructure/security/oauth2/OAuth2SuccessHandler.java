@@ -61,15 +61,27 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 			targetUrl = frontendBase + "/dashboard";
 			
 			// Gera JWT e cookie só se o usuário existir
-			String token = jwtService.generateToken(user, jwtProperties.getExpirationSeconds());
-			ResponseCookie cookie = ResponseCookie.from("access_token", token)
-				                        .httpOnly(true)
-				                        .secure(jwtProperties.isSecureCookie())
-				                        .path("/")
-				                        .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
-				                        .maxAge(jwtProperties.getExpirationSeconds())
-				                        .build();
-			response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+			String accessToken = jwtService.generateAccessToken(user);
+			String refreshToken = jwtService.generateRefreshToken(user);
+			
+			ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
+				                              .httpOnly(true)
+				                              .secure(jwtProperties.isSecureCookie())
+				                              .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
+				                              .path("/")
+				                              .maxAge(jwtProperties.getAccessTokenExpiration())
+				                              .build();
+			
+			ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+				                               .httpOnly(true)
+				                               .secure(jwtProperties.isSecureCookie())
+				                               .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
+				                               .path("/")
+				                               .maxAge(jwtProperties.getRefreshTokenExpiration())
+				                               .build();
+			
+			response.setHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+			response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 		}
 		// Redireciona
 		getRedirectStrategy().sendRedirect(request, response, targetUrl);
