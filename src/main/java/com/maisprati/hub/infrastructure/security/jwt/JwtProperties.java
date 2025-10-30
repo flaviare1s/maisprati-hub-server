@@ -13,7 +13,10 @@ public class JwtProperties {
 	private String secret;
 	
 	/** Expiração do token em segundos */
-	private long expirationSeconds;
+	private long accessTokenExpiration;
+	
+	/** Expiração do token em segundos */
+	private long refreshTokenExpiration;
 	
 	/** Uso de cookies seguros definido por profile */
 	private boolean secureCookie;
