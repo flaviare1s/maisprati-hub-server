@@ -304,6 +304,12 @@ public class NotificationService {
         String studentId = appointment.getStudentId();
         String adminId = appointment.getAdminId();
 
+        String studentName = "Um aluno";
+        Optional<User> studentOpt = userRepository.findById(studentId);
+        if (studentOpt.isPresent()) {
+            studentName = studentOpt.get().getName();
+        }
+
         switch (eventType) {
             case "SCHEDULED":
                 // Notificar admin
@@ -311,7 +317,7 @@ public class NotificationService {
                         .userId(adminId)
                         .type("appointment_scheduled")
                         .title("Nova reunião agendada")
-                        .message("Um aluno agendou uma reunião para " + formattedDate + " às " + formattedTime)
+                        .message(studentName + " agendou uma reunião para " + formattedDate + " às " + formattedTime)
                         .data(Map.of("appointmentId", appointment.getId()))
                         .createdAt(LocalDateTime.now())
                         .build());
