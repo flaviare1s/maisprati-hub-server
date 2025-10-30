@@ -16,6 +16,7 @@ Conta com suporte a **Docker** para rodar o banco localmente, perfis de configur
 - **Docker**: cria contêineres para rodar serviços sem instalar nada no PC
 - **Profiles do Spring**: diferentes configurações para `dev` e `prod`
 - **BCrypt**: criptografia de senhas para maior segurança
+- **Swagger**: documentação da API. Disponível em: http://localhost:8080/swagger-ui/index.html
 ---
 
 ## 🔧 Pré-requisitos
