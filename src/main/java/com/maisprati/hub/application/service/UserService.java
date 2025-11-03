@@ -55,15 +55,32 @@ public class UserService {
 	@Transactional
 	public User updateUser(User user) {
 		User existing = userRepository.findById(user.getId())
-			                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-		
-		if (user.getName() != null) existing.setName(user.getName());
-		if (user.getEmail() != null) existing.setEmail(user.getEmail());
-		if (user.getPassword() != null) {
-			existing.setPassword(user.getPassword()); // já vem criptografada
+				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+		if (user.getName() != null) {
+			existing.setName(user.getName());
 		}
+
+		if (user.getEmail() != null) {
+			existing.setEmail(user.getEmail());
+		}
+
+		if (user.getPassword() != null) {
+			existing.setPassword(user.getPassword());
+		}
+
+		if (existing.getType() == UserType.STUDENT) {
+			if (user.getWhatsapp() != null) {
+				existing.setWhatsapp(user.getWhatsapp().trim().isEmpty() ? null : user.getWhatsapp());
+			}
+
+			if (user.getGroupClass() != null) {
+				existing.setGroupClass(user.getGroupClass().trim().isEmpty() ? null : user.getGroupClass());
+			}
+		}
+
 		existing.setUpdatedAt(LocalDateTime.now());
-		
+
 		return userRepository.save(existing);
 	}
 
