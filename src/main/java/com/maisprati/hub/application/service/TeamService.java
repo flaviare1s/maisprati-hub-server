@@ -13,9 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -136,6 +138,7 @@ public class TeamService {
      */
     @Transactional
     public Team addMemberToTeam(String teamId, String userId, TeamMemberRole role, String subLeaderType) {
+
         // Buscar time
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new RuntimeException("Time não encontrado"));
@@ -144,12 +147,27 @@ public class TeamService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
+        log.info("👤 Usuário: {} (hasGroup: {})", user.getName(), user.getHasGroup());
+
         // Verificar se o time está cheio
         if (team.getCurrentMembers() >= team.getMaxMembers()) {
             throw new RuntimeException("Time já está cheio");
         }
 
-        // Verificar se o usuário já é membro
+        List<Team> allTeams = teamRepository.findAll();
+
+        for (Team t : allTeams) {
+            boolean removed = t.getMembers().removeIf(member -> member.getUserId().equals(userId));
+            if (removed) {
+                t.setCurrentMembers(t.getMembers().size());
+                teamRepository.save(t);
+            }
+        }
+
+        // Verificar se ainda é membro do time de destino (após limpeza)
+        team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new RuntimeException("Time não encontrado"));
+
         boolean isAlreadyMember = team.getMembers().stream()
                 .anyMatch(member -> member.getUserId().equals(userId));
 
@@ -180,7 +198,6 @@ public class TeamService {
         // Notificar admin sobre entrada no time
         notificationService.notifyAdminTeamJoin(user.getName(), team.getName());
 
-        log.info("Usuário '{}' adicionado ao time '{}'", user.getName(), team.getName());
         return updatedTeam;
     }
 
