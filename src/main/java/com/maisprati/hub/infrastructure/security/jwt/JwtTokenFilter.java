@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -48,9 +47,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 	private final UserRepository userRepository;
 
 	@Override
-	protected void doFilterInternal(@NotNull HttpServletRequest request,
-									@NotNull HttpServletResponse response,
-									@NotNull FilterChain filterChain
+	protected void doFilterInternal(HttpServletRequest request, // Anotação removida
+									HttpServletResponse response, // Anotação removida
+									FilterChain filterChain // Anotação removida
 	) throws ServletException, IOException {
 
 		// Tenta recuperar o token do cabeçalho Authorization
@@ -94,6 +93,4 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 			SecurityContextHolder.getContext().setAuthentication(auth);
 		});
 	}
-
-	// O método getCookie foi removido, pois o token agora é lido do cabeçalho Authorization.
 }
