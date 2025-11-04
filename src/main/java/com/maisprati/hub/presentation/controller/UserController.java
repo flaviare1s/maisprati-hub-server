@@ -90,4 +90,19 @@ public class UserController {
 			return ResponseEntity.notFound().build();
 		}
 	}
+
+	/**
+	 * PATCH api/users/{id}/wants-group - Desativa o desejo de formar grupo
+	 * <p>O próprio estudante pode desativar seu wantsGroup, ou ADMIN pode desativar para qualquer usuário.</p>
+	 */
+	@PatchMapping("/{id}/wants-group")
+	@PreAuthorize("hasRole('ADMIN') or (#id == authentication.principal.id and hasRole('STUDENT'))")
+	public ResponseEntity<User> disableWantsGroup(@PathVariable String id) {
+		try {
+			User updated = userService.disableWantsGroup(id);
+			return ResponseEntity.ok(updated);
+		} catch (RuntimeException e) {
+			return ResponseEntity.badRequest().build();
+		}
+	}
 }
