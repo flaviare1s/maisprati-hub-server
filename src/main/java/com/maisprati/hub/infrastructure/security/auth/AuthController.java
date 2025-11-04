@@ -74,22 +74,22 @@ public class AuthController {
 			var tokens = authService.login(user.getEmail(), user.getPassword());
 			
 			ResponseCookie accessCookie = ResponseCookie.from("access_token", tokens.accessToken())
-				                              .httpOnly(true)
-				                              .secure(jwtProperties.isSecureCookie()) // false em dev, true em prod
-				                              .path("/")
-				                              .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
-							                        // None: cookie pode ser enviado em requisições cross-site
-							                        // Lax: cookie é enviado em requisições (axios) para outra porta no mesmo host
-							                        .maxAge(jwtProperties.getAccessTokenExpiration())
-							                        .build();
+					.httpOnly(true)
+					.secure(true)
+					.path("/")
+					.sameSite("None")
+					.domain(null)
+					.maxAge(jwtProperties.getAccessTokenExpiration())
+					.build();
 			
 			ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", tokens.refreshToken())
-				                               .httpOnly(true)
-				                               .secure(jwtProperties.isSecureCookie())
-				                               .path("/")
-				                               .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
-				                               .maxAge(jwtProperties.getRefreshTokenExpiration())
-				                               .build();
+					.httpOnly(true)
+					.secure(true)
+					.path("/")
+					.sameSite("None")
+					.domain(null)
+					.maxAge(jwtProperties.getRefreshTokenExpiration())
+					.build();
 			
 			log.info("Access-Cookie: {}", accessCookie);
 			log.info("Refresh-Cookie: {}", refreshCookie);
