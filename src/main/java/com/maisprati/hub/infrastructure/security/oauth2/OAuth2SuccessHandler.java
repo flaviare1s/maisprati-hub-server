@@ -46,7 +46,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 		// Busca usuário, mas não cria
 		User user = userService.getUserByEmail(email).orElse(null);
 		
-		String frontendBase = "http://localhost:5173"; // front local
+		String frontendBase = "https://maisprati-hub.vercel.app";
 		String targetUrl;
 		
 		if (user == null) {
