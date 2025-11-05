@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,7 +38,7 @@ public class CommentController {
 
     @PutMapping("/api/comments/{commentId}")
     public ResponseEntity<CommentDTO> updateComment(@PathVariable String commentId, @RequestBody Comment comment) {
-        CommentDTO updated = commentService.updateComment(commentId, String.valueOf(comment));
+        CommentDTO updated = commentService.updateComment(commentId, comment.getContent());
         return ResponseEntity.ok(updated);
     }
 }
