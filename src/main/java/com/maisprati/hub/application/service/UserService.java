@@ -123,4 +123,27 @@ public class UserService {
 			throw new RuntimeException("E-mail já está em uso");
 		}
 	}
+
+	/**
+	 * Desativa o desejo de formar grupo (wantsGroup = false)
+	 * Apenas para estudantes
+	 */
+	@Transactional
+	public User disableWantsGroup(String userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+		if (user.getType() != UserType.STUDENT) {
+			throw new RuntimeException("Apenas estudantes podem ter o campo wantsGroup");
+		}
+
+		if (user.getWantsGroup() == null || !user.getWantsGroup()) {
+			throw new RuntimeException("O campo wantsGroup já está desativado ou não foi definido");
+		}
+
+		user.setWantsGroup(false);
+		user.setUpdatedAt(LocalDateTime.now());
+
+		return userRepository.save(user);
+	}
 }
