@@ -28,12 +28,12 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-	
+
 	private final JwtTokenFilter jwtTokenFilter;
 	private final CustomOAuth2UserService customOAuth2UserService;
 	private final OAuth2SuccessHandler oAuth2SuccessHandler;
 	private final CorsConfigurationSource corsConfigurationSource;
-	
+
 	/**
 	 * Configura o HttpSecurity definindo rotas públicas e privadas,
 	 * desabilitando CSRF e adicionando o filtro JWT antes do filtro padrão de autenticação.
@@ -41,40 +41,43 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
-			.csrf(AbstractHttpConfigurer::disable) // CSRF desabilitado para APIs REST
-			.cors(cors -> cors.configurationSource(corsConfigurationSource)) // habilita CORS
-			.authorizeHttpRequests(auth -> auth
-				                               // rotas públicas
-				                               .requestMatchers(
-					                               "/api/auth/login", "/api/auth/register", "/api/auth/refresh",
-					                               "/api/auth/forgot-password", "/api/auth/reset-password",
-					                               "/oauth2/**", "/login/oauth2/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
-				                               ).permitAll()
-				                               // permitir OPTIONS sem autenticação (preflight do navegador)
-				                               .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-				                               // rotas privadas
-				                               .anyRequest().authenticated() // qualquer outra rota requer token válido
-			)
-			.sessionManagement(session -> session
-				                              // API sem sessão — cada requisição deve ser autenticada com token
-				                              .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-			.oauth2Login(oauth -> oauth
-				                      .userInfoEndpoint(userInfo -> userInfo.userService(
-					                      customOAuth2UserService)
-				                      )
-				                      .successHandler(oAuth2SuccessHandler) // gera JWT e redireciona
-			)
-			// configuração de erro para requisições sem autenticação
-			.exceptionHandling(exception -> exception
-				                                .authenticationEntryPoint(
-					                                (request,
-					                                 response,
-					                                 authException
-					                                ) -> response.sendError(
-						                                HttpServletResponse.SC_UNAUTHORIZED, "Usuário não autenticado")
-				                                )
-			)
-			.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class); // integra o filtro JWT
+				.csrf(AbstractHttpConfigurer::disable) // CSRF desabilitado para APIs REST
+				.cors(cors -> cors.configurationSource(corsConfigurationSource)) // habilita CORS
+				.authorizeHttpRequests(auth -> auth
+						// rotas públicas
+						.requestMatchers(
+								"/api/auth/login", "/api/auth/register", "/api/auth/refresh",
+								"/api/auth/forgot-password", "/api/auth/reset-password",
+								"/oauth2/**", "/login/oauth2/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+						).permitAll()
+						// permitir OPTIONS sem autenticação (preflight do navegador)
+						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+						// rotas privadas
+						.anyRequest().authenticated() // qualquer outra rota requer token válido
+				)
+				.sessionManagement(session -> session
+						// API sem sessão — cada requisição deve ser autenticada com token
+						.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+						// CORREÇÃO: Usamos -1 para ilimitado, pois 0 causa exceção no Spring Security.
+						.maximumSessions(-1)
+				)
+				.oauth2Login(oauth -> oauth
+						.userInfoEndpoint(userInfo -> userInfo.userService(
+								customOAuth2UserService)
+						)
+						.successHandler(oAuth2SuccessHandler) // gera JWT e redireciona
+				)
+				// configuração de erro para requisições sem autenticação
+				.exceptionHandling(exception -> exception
+						.authenticationEntryPoint(
+								(request,
+								 response,
+								 authException
+								) -> response.sendError(
+										HttpServletResponse.SC_UNAUTHORIZED, "Usuário não autenticado")
+						)
+				)
+				.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class); // integra o filtro JWT
 		return http.build();
 	}
 }
