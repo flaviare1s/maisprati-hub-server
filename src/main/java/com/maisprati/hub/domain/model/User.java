@@ -147,11 +147,16 @@ public class User implements UserDetails {
 	/**
 	 * Indica se o usuário está habilitado.
 	 * Retorna o valor de {@code isActive}.
+	 * Se isActive for null (usuários antigos), considera como ativo por padrão.
 	 *
 	 * @return {@code true} se o usuário estiver ativo.
 	 */
 	@Override
 	public boolean isEnabled() {
-		return isActive != null && isActive;
+		// Se isActive for null (usuários antigos), considera ativo
+		if (isActive == null) {
+			return true;
+		}
+		return isActive;
 	}
 }
