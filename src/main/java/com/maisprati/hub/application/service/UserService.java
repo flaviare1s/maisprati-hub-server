@@ -23,6 +23,7 @@ import java.util.Optional;
  *     <li>Validar duplicidade de e-mail antes de salvar</li>
  *     <li>Buscar usuários pelo ID e pelo E-mail</li>
  *     <li>Valida email e senha para login</li>
+ *     <li>Inativar usuários e removê-los de seus times</li>
  * </ul>
  *
  * <p>Depende de {@link UserRepository} para acesso ao banco e de
@@ -32,10 +33,10 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-	
+
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
-	
+
 	/**
 	 * Registra um aluno no sistema
 	 */
@@ -44,11 +45,12 @@ public class UserService {
 		checkEmail(user.getEmail());
 		user.setPassword(passwordEncoder.encode(user.getPassword()));
 		user.setType(UserType.STUDENT);
+		user.setIsActive(true); // Garante que novo usuário está ativo
 		user.setCreatedAt(LocalDateTime.now());
 		user.setUpdatedAt(LocalDateTime.now());
 		return userRepository.save(user);
 	}
-	
+
 	/**
 	 * Atualiza dados do usuário
 	 */
@@ -91,28 +93,28 @@ public class UserService {
 	public void deleteUser(String id) {
 		userRepository.deleteById(id);
 	}
-	
+
 	/**
 	 * Lista todos os usuários (somente admin pode usar)
 	 */
 	public List<User> getAllUsers() {
 		return userRepository.findAll();
 	}
-	
+
 	/**
 	 * Busca um usuário pelo ID
 	 */
 	public Optional<User> getUserById(String id) {
 		return userRepository.findById(id);
 	}
-	
+
 	/**
 	 * Busca um usuário pelo E-mail
 	 */
 	public Optional<User> getUserByEmail(String email) {
 		return userRepository.findByEmail(email);
 	}
-	
+
 	/**
 	 * Valida duplicidade de e-mail
 	 * <p>
@@ -142,6 +144,56 @@ public class UserService {
 		}
 
 		user.setWantsGroup(false);
+		user.setUpdatedAt(LocalDateTime.now());
+
+		return userRepository.save(user);
+	}
+
+	/**
+	 * Inativa um usuário no sistema.
+	 * <p>
+	 * Ao inativar, o usuário:
+	 * <ul>
+	 *   <li>Não poderá mais fazer login (isEnabled() retorna false)</li>
+	 *   <li>Será removido automaticamente de seu time ativo (se houver)</li>
+	 * </ul>
+	 *
+	 * @param userId ID do usuário a ser inativado
+	 * @return Usuário atualizado
+	 * @throws RuntimeException se o usuário não for encontrado ou já estiver inativo
+	 */
+	@Transactional
+	public User deactivateUser(String userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+		if (user.getIsActive() != null && !user.getIsActive()) {
+			throw new RuntimeException("Usuário já está inativo");
+		}
+
+		user.setIsActive(false);
+		user.setUpdatedAt(LocalDateTime.now());
+
+		return userRepository.save(user);
+	}
+
+	/**
+	 * Reativa um usuário no sistema.
+	 *
+	 * @param userId ID do usuário a ser reativado
+	 * @return Usuário atualizado
+	 * @throws RuntimeException se o usuário não for encontrado ou já estiver ativo
+	 */
+	@Transactional
+	public User activateUser(String userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+		if (user.getIsActive() != null && user.getIsActive()) {
+			throw new RuntimeException("Usuário já está ativo");
+		}
+
+		user.setIsActive(true);
 		user.setUpdatedAt(LocalDateTime.now());
 
 		return userRepository.save(user);
