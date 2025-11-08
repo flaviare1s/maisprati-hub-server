@@ -155,4 +155,14 @@ public class UserController {
 					.body(Map.of("error", e.getMessage()));
 		}
 	}
+
+	@PatchMapping("/{userId}/reset-group-preferences")
+	public ResponseEntity<User> resetGroupPreferences(@PathVariable String userId) {
+		try {
+			User updatedUser = userService.resetGroupPreferences(userId);
+			return ResponseEntity.ok(updatedUser);
+		} catch (RuntimeException e) {
+			return ResponseEntity.badRequest().body(null);
+		}
+	}
 }
