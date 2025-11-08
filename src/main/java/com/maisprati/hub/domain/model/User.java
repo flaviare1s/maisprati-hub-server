@@ -73,13 +73,21 @@ public class User implements UserDetails {
 	private String codename;
 	private String avatar;
 
+	/**
+	 * Indica se o usuário está ativo no sistema.
+	 * Usuários inativos não podem fazer login e são removidos automaticamente de seus times.
+	 * Default: true
+	 */
+	@Builder.Default
+	private Boolean isActive = true;
+
 	// Para controle de data
 	private java.time.LocalDateTime createdAt;
 	private java.time.LocalDateTime updatedAt;
 
 	@Override
 	public String toString() {
-		return "User{id='" + id + "', username='" + name + "', email='" + email + "'}";
+		return "User{id='" + id + "', username='" + name + "', email='" + email + "', isActive=" + isActive + "}";
 	}
 
 	/**
@@ -91,7 +99,7 @@ public class User implements UserDetails {
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		return List.of(new SimpleGrantedAuthority("ROLE_" + getType().getName().toUpperCase()));
 	}
-	
+
 	/**
 	 * Retorna o identificador de login do usuário.
 	 * Neste caso, o login é feito através do e-mail.
@@ -102,7 +110,7 @@ public class User implements UserDetails {
 	public String getUsername() {
 		return email;
 	}
-	
+
 	/**
 	 * Indica se a conta do usuário está expirada.
 	 * Por padrão, sempre retorna o valor definido em {@link UserDetails}.
@@ -113,7 +121,7 @@ public class User implements UserDetails {
 	public boolean isAccountNonExpired() {
 		return UserDetails.super.isAccountNonExpired();
 	}
-	
+
 	/**
 	 * Indica se a conta do usuário está bloqueada.
 	 * Por padrão, sempre retorna o valor definido em {@link UserDetails}.
@@ -124,7 +132,7 @@ public class User implements UserDetails {
 	public boolean isAccountNonLocked() {
 		return UserDetails.super.isAccountNonLocked();
 	}
-	
+
 	/**
 	 * Indica se as credenciais do usuário estão expiradas.
 	 * Por padrão, sempre retorna o valor definido em {@link UserDetails}.
@@ -135,15 +143,20 @@ public class User implements UserDetails {
 	public boolean isCredentialsNonExpired() {
 		return UserDetails.super.isCredentialsNonExpired();
 	}
-	
+
 	/**
 	 * Indica se o usuário está habilitado.
-	 * Por padrão, sempre retorna o valor definido em {@link UserDetails}.
+	 * Retorna o valor de {@code isActive}.
+	 * Se isActive for null (usuários antigos), considera como ativo por padrão.
 	 *
 	 * @return {@code true} se o usuário estiver ativo.
 	 */
 	@Override
 	public boolean isEnabled() {
-		return UserDetails.super.isEnabled();
+		// Se isActive for null (usuários antigos), considera ativo
+		if (isActive == null) {
+			return true;
+		}
+		return isActive;
 	}
 }

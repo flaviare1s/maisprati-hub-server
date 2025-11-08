@@ -16,7 +16,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class AuthService implements UserDetailsService {
-	
+
 	private final UserRepository userRepository;
 	/**
 	 * {@link PasswordEncoder} é a interface do Spring Security para codificar e validar senhas.
@@ -25,7 +25,7 @@ public class AuthService implements UserDetailsService {
 	 */
 	private final PasswordEncoder passwordEncoder;
 	private final JwtService jwtService;
-	
+
 	/**
 	 * Carrega um usuário pelo e-mail para autenticação no Spring Security.
 	 *
@@ -39,28 +39,33 @@ public class AuthService implements UserDetailsService {
 	 * @return {@link UserDetails} do usuário
 	 * @throws UsernameNotFoundException se o usuário não existir
 	 */
-	
+
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 		return userRepository.findByEmail(username)
-			       .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 	}
-	
+
 	/**
 	 * Realiza login e retorna os tokens JWT (de acesso e atualização)
 	 */
 	public AuthTokens login(String email, String password) {
 		User user = userRepository.findByEmail(email)
-			            .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
-		
-		// compara a senha digitada com a criptografada no banco
+				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+
+		// VERIFICAÇÃO 1: Checar se o usuário está ativo
+		if (user.getIsActive() == null || !user.getIsActive()) {
+			throw new RuntimeException("Sua conta está inativa. Entre em contato com o administrador.");
+		}
+
+		// VERIFICAÇÃO 2: Comparar senha
 		if (!passwordEncoder.matches(password, user.getPassword())) {
 			throw new RuntimeException("Credenciais inválidas");
 		}
-		
+
 		String accessToken = jwtService.generateAccessToken(user);
 		String refreshToken = jwtService.generateRefreshToken(user);
-		
+
 		return new AuthTokens(accessToken, refreshToken);
 	}
 }
