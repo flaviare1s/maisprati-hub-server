@@ -324,4 +324,35 @@ public class TeamService {
 
         return teamRepository.save(team);
     }
+
+    /**
+     * Remove um usuário de todos os times ativos em que ele participa.
+     * <p>
+     * Este método é chamado automaticamente quando um usuário é inativado.
+     *
+     * @param userId ID do usuário a ser removido
+     * @param reason Motivo da remoção (ex: "Usuário inativado")
+     * @throws RuntimeException se houver erro ao remover o usuário de algum time
+     */
+    @Transactional
+    public void removeUserFromAllActiveTeams(String userId, String reason) {
+        // Busca todos os times ativos
+        List<Team> activeTeams = getActiveTeams();
+
+        // Remove o usuário de cada time em que ele esteja
+        for (Team team : activeTeams) {
+            boolean isMember = team.getMembers().stream()
+                    .anyMatch(member -> member.getUserId().equals(userId));
+
+            if (isMember) {
+                try {
+                    removeMemberFromTeam(team.getId(), userId, reason);
+                    log.info("Usuário {} removido do time {} devido a: {}", userId, team.getName(), reason);
+                } catch (Exception e) {
+                    log.error("Erro ao remover usuário {} do time {}: {}", userId, team.getName(), e.getMessage());
+                    // Continua removendo dos outros times mesmo se falhar em um
+                }
+            }
+        }
+    }
 }
