@@ -46,12 +46,28 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 		String targetUrl;
 
 		if (user == null) {
+			// Usuário não existe -> redireciona para registro
 			targetUrl = UriComponentsBuilder.fromUriString(frontendBase + "/register")
 					.queryParam("email", email)
 					.queryParam("name", name)
 					.build()
 					.toUriString();
 		} else {
+			if (user.getIsActive() == null || !user.getIsActive()) {
+				log.warn("Tentativa de login OAuth2 de usuário inativo: {}", email);
+
+				// Redireciona para login com erro
+				targetUrl = UriComponentsBuilder.fromUriString(frontendBase + "/login")
+						.queryParam("error", "account_inactive")
+						.queryParam("message", "Sua conta está inativa. Entre em contato com o administrador.")
+						.build()
+						.toUriString();
+
+				getRedirectStrategy().sendRedirect(request, response, targetUrl);
+				return;
+			}
+
+			// Usuário existe e está ativo -> gera tokens
 			String accessToken = jwtService.generateAccessToken(user);
 			String refreshToken = jwtService.generateRefreshToken(user);
 
