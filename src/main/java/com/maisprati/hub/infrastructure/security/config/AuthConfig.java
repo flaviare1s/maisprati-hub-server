@@ -1,8 +1,8 @@
 package com.maisprati.hub.infrastructure.security.config;
 
+import com.maisprati.hub.application.service.CustomUserDetailsService;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
 import com.maisprati.hub.infrastructure.security.oauth2.CustomOAuth2UserService;
-import com.maisprati.hub.infrastructure.security.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
