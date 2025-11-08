@@ -198,4 +198,26 @@ public class UserService {
 
 		return userRepository.save(user);
 	}
+
+	/**
+	 * Reseta todas as preferências de grupo do usuário
+	 * Define tanto hasGroup quanto wantsGroup como false
+	 * Usado quando o usuário quer trabalhar individualmente
+	 */
+	@Transactional
+	public User resetGroupPreferences(String userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+		if (user.getType() != UserType.STUDENT) {
+			throw new RuntimeException("Apenas estudantes podem ter preferências de grupo");
+		}
+
+		// Reseta ambos os campos
+		user.setHasGroup(false);
+		user.setWantsGroup(false);
+		user.setUpdatedAt(LocalDateTime.now());
+
+		return userRepository.save(user);
+	}
 }
