@@ -1,5 +1,6 @@
 package com.maisprati.hub.application.service;
 
+import com.maisprati.hub.domain.enums.EmotionalStatus;
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.domain.enums.UserType;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
@@ -220,4 +221,23 @@ public class UserService {
 
 		return userRepository.save(user);
 	}
+
+	@Transactional
+	public User updateEmotionalStatus(String userId, EmotionalStatus emotionalStatus) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+		user.setEmotionalStatus(emotionalStatus);
+		user.setUpdatedAt(LocalDateTime.now());
+
+		return userRepository.save(user);
+	}
+
+	/**
+	 * Lista todos os estados emocionais possíveis
+	 */
+	public List<EmotionalStatus> getAllEmotionalStatuses() {
+		return List.of(EmotionalStatus.values());
+	}
+
 }
