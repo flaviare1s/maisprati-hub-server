@@ -1,5 +1,6 @@
 package com.maisprati.hub.domain.model;
 
+import com.maisprati.hub.domain.enums.EmotionalStatus;
 import com.maisprati.hub.domain.enums.UserType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -72,6 +73,7 @@ public class User implements UserDetails {
 	private Boolean wantsGroup;
 	private String codename;
 	private String avatar;
+	private EmotionalStatus emotionalStatus;
 
 	/**
 	 * Indica se o usuário está ativo no sistema.

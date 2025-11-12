@@ -1,5 +1,6 @@
 package com.maisprati.hub.presentation.controller;
 
+import com.maisprati.hub.domain.enums.EmotionalStatus;
 import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.infrastructure.security.auth.AuthController;
 import com.maisprati.hub.application.service.UserService;
@@ -163,6 +164,40 @@ public class UserController {
 			return ResponseEntity.ok(updatedUser);
 		} catch (RuntimeException e) {
 			return ResponseEntity.badRequest().body(null);
+		}
+	}
+
+
+	/**
+	 * GET api/users/emotional-status - Lista todos os estados emocionais possíveis
+	 */
+	@GetMapping("/emotional-status")
+	public ResponseEntity<List<EmotionalStatus>> getAllEmotionalStatuses() {
+		return ResponseEntity.ok(userService.getAllEmotionalStatuses());
+	}
+
+	/**
+	 * PATCH api/users/{id}/emotional-status - Atualiza o estado emocional do usuário
+	 * O próprio usuário pode atualizar, ou o ADMIN.
+	 */
+	@PatchMapping("/{id}/emotional-status")
+	@PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+	public ResponseEntity<?> updateEmotionalStatus(
+			@PathVariable String id,
+			@RequestBody Map<String, String> body
+	) {
+		try {
+			String statusString = body.get("emotionalStatus");
+			EmotionalStatus newStatus = (statusString == null || statusString.isBlank())
+					? null
+					: EmotionalStatus.valueOf(statusString.toUpperCase());
+
+			User updated = userService.updateEmotionalStatus(id, newStatus);
+			return ResponseEntity.ok(updated);
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.badRequest().body(Map.of("error", "Estado emocional inválido."));
+		} catch (RuntimeException e) {
+			return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
 		}
 	}
 }
