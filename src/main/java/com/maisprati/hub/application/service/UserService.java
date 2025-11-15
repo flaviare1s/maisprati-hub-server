@@ -51,6 +51,33 @@ public class UserService {
 		user.setUpdatedAt(LocalDateTime.now());
 		return userRepository.save(user);
 	}
+	
+	@Transactional
+	public User registerOrLoginOAuth2User(String email, String name, String provider) {
+		Optional<User> existingUser = userRepository.findByEmail(email);
+		
+		if (existingUser.isPresent()) {
+			// Atualiza data de último login (opcional)
+			User user = existingUser.get();
+			user.setUpdatedAt(LocalDateTime.now());
+			return userRepository.save(user);
+		}
+		
+		// Cria novo usuário OAuth2
+		User newUser = new User();
+		newUser.setEmail(email);
+		newUser.setName(name);
+		newUser.setPassword(null); // OAuth2 não usa senha local
+		newUser.setIsActive(true);
+		newUser.setType(UserType.STUDENT); // ou TEACHER, conforme sua regra
+		newUser.setCreatedAt(LocalDateTime.now());
+		newUser.setUpdatedAt(LocalDateTime.now());
+		
+		// Se quiser registrar de qual provedor veio (crie um campo provider no model)
+		// newUser.setProvider(provider);
+		
+		return userRepository.save(newUser);
+	}
 
 	/**
 	 * Atualiza dados do usuário
