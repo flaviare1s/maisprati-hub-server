@@ -11,6 +11,11 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      # desativa o Ryuk (container de limpeza) do Testcontainers para evitar problemas no CI
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+      # ativa logging detalhado do Testcontainers
+      TESTCONTAINERS_LOGGING: "DEBUG"
 
     steps:
       - name: Checkout code
@@ -22,8 +27,12 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Build with Maven
-        run: mvn clean install
+      # imagem para testes
+      - name: Pull MongoDB image
+        run: docker pull mongo:7.0.5
 
-      - name: Run tests
-        run: mvn test
+      - name: Build with Maven
+        run: mvn clean install -B
+
+      - name: Run tests (unit + integration)
+        run: mvn verify -B
