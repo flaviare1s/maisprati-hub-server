@@ -26,8 +26,24 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		
 		String name = oAuth2User.getAttribute("name");
 		
-		// Só busca, não cria
+		// Captura os tokens de acesso/atualização
+		String accessToken = userRequest.getAccessToken().getTokenValue();
+		String refreshToken = null;
+		if (userRequest.getAdditionalParameters().containsKey("refresh_token")) {
+			refreshToken = (String) userRequest.getAdditionalParameters().get("refresh_token");
+		}
+		
+		System.out.println("Access Token: " + accessToken);
+		System.out.println("Refresh Token: " + refreshToken);
+		
+		// Buscar o usuário
 		User user = userRepository.findByEmail(email).orElse(null);
+		
+//		// salvar refresh token no banco
+//		if (user != null && refreshToken != null) {
+//			user.setGoogleRefreshToken(refreshToken);
+//			userRepository.save(user);
+//		}
 		
 		return oAuth2User;
 	}
