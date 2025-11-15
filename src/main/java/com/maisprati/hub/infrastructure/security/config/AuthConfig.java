@@ -40,9 +40,4 @@ public class AuthConfig {
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
 		return authConfig.getAuthenticationManager();
 	}
-
-	@Bean
-	public CustomOAuth2UserService customOAuth2UserService() {
-		return new CustomOAuth2UserService(userRepository);
-	}
 }
