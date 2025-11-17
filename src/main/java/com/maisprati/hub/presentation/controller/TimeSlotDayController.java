@@ -3,6 +3,7 @@ package com.maisprati.hub.presentation.controller;
 import com.maisprati.hub.domain.model.TimeSlot;
 import com.maisprati.hub.domain.model.TimeSlotDay;
 import com.maisprati.hub.application.service.TimeSlotDayService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Collections;
 
+@Tag(name = "Time Slots")
 @RestController
 @RequestMapping("/api/timeslots")
 @RequiredArgsConstructor

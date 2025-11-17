@@ -6,6 +6,8 @@ import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.infrastructure.security.jwt.JwtProperties;
 import com.maisprati.hub.infrastructure.security.jwt.JwtService;
 import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
+import com.maisprati.hub.presentation.dto.LoginRequest;
+import com.maisprati.hub.presentation.dto.RegisterStudentRequest;
 import com.maisprati.hub.presentation.dto.ResetPasswordRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +38,7 @@ class AuthControllerTest {
 	@BeforeEach
 	void setup() {
 		MockitoAnnotations.openMocks(this);
+		
 		user = new User();
 		user.setEmail("email@test.com");
 		user.setPassword("encrypted");
@@ -44,53 +47,75 @@ class AuthControllerTest {
 	// TEST 1 - /register
 	@Test
 	void registerStudent_ShouldReturnCreatedWhenSuccess() {
-		when(userService.registerStudent(user)).thenReturn(user);
 		
-		ResponseEntity<?> response = authController.registerStudent(user);
+		RegisterStudentRequest req = new RegisterStudentRequest();
+		req.setName("Test User");
+		req.setEmail("email@test.com");
+		req.setPassword("123");
+		
+		when(userService.registerStudent(any(User.class))).thenReturn(user);
+		
+		ResponseEntity<?> response = authController.registerStudent(req);
 		
 		assertEquals(201, response.getStatusCodeValue());
-		assertEquals("Cadastro realizado com sucesso!", ((Map<?, ?>)response.getBody()).get("message"));
+		assertEquals("Cadastro realizado com sucesso!", ((Map<?, ?>) response.getBody()).get("message"));
 	}
 	
 	// TEST 2
 	@Test
 	void registerStudent_ShouldReturnBadRequestOnError() {
-		when(userService.registerStudent(user)).thenThrow(new RuntimeException("Erro"));
 		
-		ResponseEntity<?> response = authController.registerStudent(user);
+		RegisterStudentRequest req = new RegisterStudentRequest();
+		req.setName("Test User");
+		req.setEmail("email@test.com");
+		req.setPassword("123");
+		
+		when(userService.registerStudent(any(User.class)))
+			.thenThrow(new RuntimeException("Erro"));
+		
+		ResponseEntity<?> response = authController.registerStudent(req);
 		
 		assertEquals(400, response.getStatusCodeValue());
-		assertEquals("Erro", ((Map<?, ?>)response.getBody()).get("error"));
+		assertEquals("Erro", ((Map<?, ?>) response.getBody()).get("error"));
 	}
 	
 	// TEST 3 - /login
 	@Test
 	void login_ShouldReturnTokens() {
+		
 		var tokens = new AuthTokens("access-token", "refresh-token");
-		when(authService.login(user.getEmail(), "123")).thenReturn(tokens);
+		
+		LoginRequest req = new LoginRequest();
+		req.setEmail("email@test.com");
+		req.setPassword("123");
+		
+		when(authService.login(req.getEmail(), req.getPassword())).thenReturn(tokens);
 		when(jwtProperties.isSecureCookie()).thenReturn(false);
 		when(jwtProperties.getAccessTokenExpiration()).thenReturn(3600L);
 		when(jwtProperties.getRefreshTokenExpiration()).thenReturn(7200L);
 		
-		user.setPassword("123"); // apenas para teste de senha
-		
-		ResponseEntity<?> response = authController.login(user);
+		ResponseEntity<?> response = authController.login(req);
 		
 		assertEquals(200, response.getStatusCodeValue());
 		assertTrue(response.getHeaders().containsKey(HttpHeaders.SET_COOKIE));
-		assertEquals("Login realizado com sucesso!", ((Map<?, ?>)response.getBody()).get("message"));
+		assertEquals("Login realizado com sucesso!", ((Map<?, ?>) response.getBody()).get("message"));
 	}
 	
 	// TEST 4
 	@Test
 	void login_ShouldReturnUnauthorizedOnInvalidPassword() {
-		when(authService.login(user.getEmail(), "wrong")).thenThrow(new RuntimeException("Credenciais inválidas"));
 		
-		user.setPassword("wrong");
-		ResponseEntity<?> response = authController.login(user);
+		LoginRequest req = new LoginRequest();
+		req.setEmail("email@test.com");
+		req.setPassword("wrong");
+		
+		when(authService.login(req.getEmail(), req.getPassword()))
+			.thenThrow(new RuntimeException("Credenciais inválidas"));
+		
+		ResponseEntity<?> response = authController.login(req);
 		
 		assertEquals(401, response.getStatusCodeValue());
-		assertEquals("Credenciais inválidas", ((Map<?, ?>)response.getBody()).get("error"));
+		assertEquals("Credenciais inválidas", ((Map<?, ?>) response.getBody()).get("error"));
 	}
 	
 	// TEST 5 - /me
@@ -122,13 +147,14 @@ class AuthControllerTest {
 		ResponseEntity<?> response = authController.getCurrentUser();
 		
 		assertEquals(401, response.getStatusCodeValue());
-		assertEquals("Usuário não autenticado", ((Map<?, ?>)response.getBody()).get("error"));
+		assertEquals("Usuário não autenticado", ((Map<?, ?>) response.getBody()).get("error"));
 	}
 	
 	// TEST 7 - /refresh
 	@Test
 	void refreshToken_ShouldReturnNewAccessToken() {
 		String refreshToken = "refresh-token";
+		
 		when(jwtService.extractUsernameFromRefreshToken(refreshToken)).thenReturn("email@test.com");
 		when(userService.getUserByEmail("email@test.com")).thenReturn(Optional.of(user));
 		when(jwtService.generateAccessToken(user)).thenReturn("new-access-token");
@@ -139,7 +165,7 @@ class AuthControllerTest {
 		
 		assertEquals(200, response.getStatusCodeValue());
 		assertTrue(response.getHeaders().containsKey(HttpHeaders.SET_COOKIE));
-		assertEquals("Access token renovado com sucesso!", ((Map<?, ?>)response.getBody()).get("message"));
+		assertEquals("Access token renovado com sucesso!", ((Map<?, ?>) response.getBody()).get("message"));
 	}
 	
 	// TEST 8
@@ -147,73 +173,85 @@ class AuthControllerTest {
 	void refreshToken_ShouldReturnUnauthorizedWhenTokenMissing() {
 		ResponseEntity<?> response = authController.refreshToken(null);
 		assertEquals(401, response.getStatusCodeValue());
-		assertEquals("Refresh token ausente", ((Map<?, ?>)response.getBody()).get("error"));
+		assertEquals("Refresh token ausente", ((Map<?, ?>) response.getBody()).get("error"));
 	}
 	
 	// TEST 9
 	@Test
 	void refreshToken_ShouldReturnUnauthorizedWhenTokenInvalid() {
 		String refreshToken = "invalid-token";
+		
 		when(jwtService.extractUsernameFromRefreshToken(refreshToken)).thenReturn(null);
 		
 		ResponseEntity<?> response = authController.refreshToken(refreshToken);
 		
 		assertEquals(401, response.getStatusCodeValue());
-		assertEquals("Token inválido ou expirado", ((Map<?, ?>)response.getBody()).get("error"));
+		assertEquals("Token inválido ou expirado", ((Map<?, ?>) response.getBody()).get("error"));
 	}
 	
 	// TEST 10 - /forgot-password
 	@Test
 	void forgotPassword_ShouldReturnOkWhenSuccess() {
-		doNothing().when(passwordResetService).generateAndSendToken("email@test.com");
-		ForgotPasswordRequest request = new ForgotPasswordRequest();
-		request.setEmail("email@test.com");
 		
-		ResponseEntity<?> response = authController.forgotPassword(request);
+		ForgotPasswordRequest req = new ForgotPasswordRequest();
+		req.setEmail("email@test.com");
+		
+		doNothing().when(passwordResetService).generateAndSendToken("email@test.com");
+		
+		ResponseEntity<?> response = authController.forgotPassword(req);
 		
 		assertEquals(200, response.getStatusCodeValue());
-		assertEquals("Se o e-mail existir, enviaremos um link de redefinição", ((Map<?, ?>)response.getBody()).get("message"));
+		assertEquals("Se o e-mail existir, enviaremos um link de redefinição",
+			((Map<?, ?>) response.getBody()).get("message"));
 	}
 	
 	// TEST 11
 	@Test
 	void forgotPassword_ShouldReturnNotFoundWhenError() {
-		doThrow(new RuntimeException("Erro")).when(passwordResetService).generateAndSendToken("email@test.com");
-		ForgotPasswordRequest request = new ForgotPasswordRequest();
-		request.setEmail("email@test.com");
 		
-		ResponseEntity<?> response = authController.forgotPassword(request);
+		ForgotPasswordRequest req = new ForgotPasswordRequest();
+		req.setEmail("email@test.com");
+		
+		doThrow(new RuntimeException("Erro"))
+			.when(passwordResetService).generateAndSendToken("email@test.com");
+		
+		ResponseEntity<?> response = authController.forgotPassword(req);
 		
 		assertEquals(404, response.getStatusCodeValue());
-		assertEquals("Erro", ((Map<?, ?>)response.getBody()).get("error"));
+		assertEquals("Erro", ((Map<?, ?>) response.getBody()).get("error"));
 	}
 	
 	// TEST 12 - /reset-password
 	@Test
 	void resetPassword_ShouldReturnOkWhenSuccess() {
-		doNothing().when(passwordResetService).resetPassword("token", "newpass");
-		ResetPasswordRequest request = new ResetPasswordRequest();
-		request.setToken("token");
-		request.setNewPassword("newpass");
 		
-		ResponseEntity<?> response = authController.resetPassword(request);
+		ResetPasswordRequest req = new ResetPasswordRequest();
+		req.setToken("token");
+		req.setNewPassword("newpass");
+		
+		doNothing().when(passwordResetService).resetPassword("token", "newpass");
+		
+		ResponseEntity<?> response = authController.resetPassword(req);
 		
 		assertEquals(200, response.getStatusCodeValue());
-		assertEquals("Senha atualizada com sucesso!", ((Map<?, ?>)response.getBody()).get("message"));
+		assertEquals("Senha atualizada com sucesso!", ((Map<?, ?>) response.getBody()).get("message"));
 	}
 	
 	// TEST 13
 	@Test
 	void resetPassword_ShouldReturnBadRequestOnError() {
-		doThrow(new RuntimeException("Erro")).when(passwordResetService).resetPassword("token", "newpass");
-		ResetPasswordRequest request = new ResetPasswordRequest();
-		request.setToken("token");
-		request.setNewPassword("newpass");
 		
-		ResponseEntity<?> response = authController.resetPassword(request);
+		ResetPasswordRequest req = new ResetPasswordRequest();
+		req.setToken("token");
+		req.setNewPassword("newpass");
+		
+		doThrow(new RuntimeException("Erro"))
+			.when(passwordResetService).resetPassword("token", "newpass");
+		
+		ResponseEntity<?> response = authController.resetPassword(req);
 		
 		assertEquals(400, response.getStatusCodeValue());
-		assertEquals("Erro", ((Map<?, ?>)response.getBody()).get("error"));
+		assertEquals("Erro", ((Map<?, ?>) response.getBody()).get("error"));
 	}
 	
 	// TEST 14 - /logout
@@ -233,7 +271,7 @@ class AuthControllerTest {
 		// Recupera todos os cookies
 		var cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
 		assertNotNull(cookies);
-		assertEquals(2, cookies.size()); // Deve ter access_token e refresh_token
+		assertEquals(2, cookies.size());
 		
 		// Verifica se os cookies expirados estão corretos
 		assertTrue(cookies.get(0).contains("access_token="));
