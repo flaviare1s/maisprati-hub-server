@@ -3,12 +3,14 @@ package com.maisprati.hub.presentation.controller;
 import com.maisprati.hub.application.dto.CommentDTO;
 import com.maisprati.hub.domain.model.Comment;
 import com.maisprati.hub.application.service.CommentService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Comments")
 @RestController
 @RequiredArgsConstructor
 public class CommentController {

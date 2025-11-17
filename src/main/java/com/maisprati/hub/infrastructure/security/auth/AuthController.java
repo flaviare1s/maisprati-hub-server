@@ -6,7 +6,14 @@ import com.maisprati.hub.application.service.UserService;
 import com.maisprati.hub.infrastructure.security.jwt.JwtProperties;
 import com.maisprati.hub.infrastructure.security.jwt.JwtService;
 import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
+import com.maisprati.hub.presentation.dto.LoginRequest;
+import com.maisprati.hub.presentation.dto.RegisterStudentRequest;
 import com.maisprati.hub.presentation.dto.ResetPasswordRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -37,7 +44,7 @@ import java.util.Map;
  *
  * <p>Isso evita a exposição direta de campos do usuário, prevenindo vulnerabilidades de XSS.</p>
  */
-
+@Tag(name = "Authorization")
 @RestController
 @RequestMapping("api/auth")
 @RequiredArgsConstructor
@@ -53,12 +60,37 @@ public class AuthController {
 	/**
 	 * POST api/auth/register - Cadastra um aluno
 	 */
+	@Operation(summary = "Registrar novo aluno", description = "🟢 **Público** - Qualquer pessoa pode se registrar como STUDENT")
+	@SecurityRequirements
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "201", description = "Cadastro realizado com sucesso"),
+			@ApiResponse(responseCode = "400", description = "Erro ao cadastrar aluno")
+	})
 	@PostMapping("/register")
-	public ResponseEntity<?> registerStudent(@RequestBody User user) {
+	public ResponseEntity<?> registerStudent(@RequestBody RegisterStudentRequest request) {
 		try {
-			userService.registerStudent(user);
+			User newUser = new User();
+
+			newUser.setName(request.getName());
+			newUser.setEmail(request.getEmail());
+			newUser.setPassword(request.getPassword());
+
+			newUser.setType(request.getType());
+			newUser.setWhatsapp(request.getWhatsapp());
+			newUser.setGroupClass(request.getGroupClass());
+
+			newUser.setHasGroup(request.getHasGroup() != null ? request.getHasGroup() : false);
+			newUser.setWantsGroup(request.getWantsGroup() != null ? request.getWantsGroup() : false);
+			newUser.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+
+			newUser.setCodename(request.getCodename());
+			newUser.setAvatar(request.getAvatar());
+			newUser.setEmotionalStatus(request.getEmotionalStatus());
+
+			userService.registerStudent(newUser);
+
 			return ResponseEntity.status(HttpStatus.CREATED)
-				       .body(Map.of("message", "Cadastro realizado com sucesso!"));
+					.body(Map.of("message", "Cadastro realizado com sucesso!"));
 		} catch (RuntimeException e) {
 			log.error("Erro ao cadastrar aluno: {}", e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
@@ -68,10 +100,16 @@ public class AuthController {
 	/**
 	 * POST api/auth/login - Realiza login
 	 */
+	@Operation(summary = "Realizar login", security = {})
+	@SecurityRequirements
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Login realizado com sucesso"),
+			@ApiResponse(responseCode = "401", description = "Credenciais inválidas")
+	})
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@RequestBody User user) {
+	public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
 		try {
-			var tokens = authService.login(user.getEmail(), user.getPassword());
+			var tokens = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
 			
 			ResponseCookie accessCookie = ResponseCookie.from("access_token", tokens.accessToken())
 				                              .httpOnly(true)
@@ -106,6 +144,7 @@ public class AuthController {
 	/**
 	 * POST api/auth/logout - Faz logout do usuário
 	 */
+	@Operation(summary = "Fazer logout")
 	@PostMapping("/logout")
 	public ResponseEntity<?> logout() {
 		try {
@@ -138,6 +177,7 @@ public class AuthController {
 	/**
 	 * GET api/auth/me - Busca dados do usuário autenticado
 	 */
+	@Operation(summary = "Buscar dados do usuário autenticado", description = "🔒 **Autenticado** - Qualquer usuário logado (ADMIN ou STUDENT)")
 	@GetMapping("/me")
 	public ResponseEntity<?> getCurrentUser() {
 		try {
@@ -162,7 +202,9 @@ public class AuthController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
 		}
 	}
-	
+
+	@Operation(summary = "Esqueci minha senha")
+	@SecurityRequirements
 	@PostMapping("/forgot-password")
 	public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
 		try {
@@ -174,7 +216,9 @@ public class AuthController {
 			return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
 		}
 	}
-	
+
+	@Operation(summary = "Redefinir senha")
+	@SecurityRequirements
 	@PostMapping("/reset-password")
 	public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
 		try {
@@ -184,7 +228,9 @@ public class AuthController {
 			return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
 		}
 	}
-	
+
+	@Operation(summary = "Renovar access token")
+	@SecurityRequirements
 	@PostMapping("/refresh")
 	public ResponseEntity<?> refreshToken(
 		@CookieValue(value = "refresh_token", required = false) String refreshToken) {

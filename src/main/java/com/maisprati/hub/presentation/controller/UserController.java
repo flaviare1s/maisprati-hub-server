@@ -5,6 +5,8 @@ import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.infrastructure.security.auth.AuthController;
 import com.maisprati.hub.application.service.UserService;
 import com.maisprati.hub.application.service.TeamService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,6 +22,7 @@ import java.util.Map;
  * Este controller lida com operações internas, com restrição de roles.</p>
  */
 
+@Tag(name = "Users")
 @RestController
 @RequestMapping("api/users")
 @RequiredArgsConstructor
@@ -31,6 +34,10 @@ public class UserController {
 	/**
 	 * GET api/users - Lista todos os usuários
 	 */
+	@Operation(
+			summary = "Listar todos os usuários",
+			description = "🔒 **Autenticado** - Qualquer usuário logado (ADMIN ou STUDENT)"
+	)
 	@GetMapping
 	@PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
 	public ResponseEntity<List<User>> all() {
@@ -42,6 +49,10 @@ public class UserController {
 	 * GET api/users/{id} - Busca um usuário pelo id
 	 * <p>O próprio usuário pode acessar seu perfil, ou ADMIN pode acessar qualquer.</p>
 	 */
+	@Operation(
+			summary = "Listar um usuário",
+			description = "🔒 **Autenticado** - Qualquer usuário logado (ADMIN ou STUDENT)"
+	)
 	@GetMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
 	public ResponseEntity<User> get(@PathVariable String id){
@@ -54,6 +65,10 @@ public class UserController {
 	 * PUT api/users/{id} - Atualiza perfil de um usuário (aluno ou admin)
 	 * <p>O próprio usuário pode atualizar seu perfil, ou ADMIN pode atualizar qualquer usuário.</p>
 	 */
+	@Operation(
+			summary = "Atualizar usuário",
+			description = "🔒 **Autenticado** - Qualquer usuário logado (ADMIN ou STUDENT)"
+	)
 	@PutMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
 	public ResponseEntity<User> update(@PathVariable String id, @RequestBody User user){
@@ -69,6 +84,10 @@ public class UserController {
 	/**
 	 * PUT api/users/admin - Atalho para atualizar o admin
 	 */
+	@Operation(
+			summary = "Atalho para atualizar o admin",
+			description = "🔐 **Requer ADMIN**"
+	)
 	@PutMapping("/admin")
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<User> updateAdmin(@RequestBody User user){
@@ -84,6 +103,10 @@ public class UserController {
 	 * DELETE api/users/{id} - Remove usuário
 	 * <p>Somente ADMIN pode deletar usuários.</p>
 	 */
+	@Operation(
+			summary = "Deletar usuários",
+			description = "🔐 **Requer ADMIN**"
+	)
 	@DeleteMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<Void> delete(@PathVariable String id) {
@@ -99,6 +122,11 @@ public class UserController {
 	 * PATCH api/users/{id}/wants-group - Desativa o desejo de formar grupo
 	 * <p>O próprio estudante pode desativar seu wantsGroup, ou ADMIN pode desativar para qualquer usuário.</p>
 	 */
+
+	@Operation(
+			summary = "Desativa o desejo de formar grupo (torna o aluno solo)",
+			description = "🔒 **Autenticado** - Qualquer usuário logado (ADMIN ou STUDENT)"
+	)
 	@PatchMapping("/{id}/wants-group")
 	@PreAuthorize("hasRole('ADMIN') or (#id == authentication.principal.id and hasRole('STUDENT'))")
 	public ResponseEntity<User> disableWantsGroup(@PathVariable String id) {
@@ -115,6 +143,10 @@ public class UserController {
 	 * <p>O próprio usuário pode se inativar, ou ADMIN pode inativar qualquer usuário.</p>
 	 * <p>Ao inativar, o usuário é automaticamente removido de seu time ativo (se houver).</p>
 	 */
+	@Operation(
+			summary = "Inativar usuários",
+			description = "🔐 **Requer ADMIN**"
+	)
 	@PatchMapping("/{id}/deactivate")
 	@PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
 	public ResponseEntity<Map<String, Object>> deactivateUser(@PathVariable String id) {
@@ -141,6 +173,10 @@ public class UserController {
 	 * PATCH api/users/{id}/activate - Reativa um usuário
 	 * <p>Somente ADMIN pode reativar usuários.</p>
 	 */
+	@Operation(
+			summary = "Ativar usuários",
+			description = "🔐 **Requer ADMIN**"
+	)
 	@PatchMapping("/{id}/activate")
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<Map<String, Object>> activateUser(@PathVariable String id) {
@@ -157,6 +193,10 @@ public class UserController {
 		}
 	}
 
+	@Operation(
+			summary = "Altera preferência de trabalhar sozinho ou em grupo",
+			description = "🔒 **Autenticado** - (STUDENT)"
+	)
 	@PatchMapping("/{userId}/reset-group-preferences")
 	public ResponseEntity<User> resetGroupPreferences(@PathVariable String userId) {
 		try {
@@ -171,15 +211,22 @@ public class UserController {
 	/**
 	 * GET api/users/emotional-status - Lista todos os estados emocionais possíveis
 	 */
+	@Operation(
+			summary = "Lista todos os estados emocionais possíveis",
+			description = "🔒 **Autenticado** - Qualquer usuário logado (ADMIN ou STUDENT)"
+	)
 	@GetMapping("/emotional-status")
 	public ResponseEntity<List<EmotionalStatus>> getAllEmotionalStatuses() {
 		return ResponseEntity.ok(userService.getAllEmotionalStatuses());
 	}
 
 	/**
-	 * PATCH api/users/{id}/emotional-status - Atualiza o estado emocional do usuário
-	 * O próprio usuário pode atualizar, ou o ADMIN.
+	 * PATCH api/users/{id}/emotional-status - Atualiza o estado emocional do usuário.
 	 */
+	@Operation(
+			summary = "Atualiza o estado emocional",
+			description = "🔒 **Autenticado** - Qualquer usuário logado (ADMIN ou STUDENT)"
+	)
 	@PatchMapping("/{id}/emotional-status")
 	@PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
 	public ResponseEntity<?> updateEmotionalStatus(
