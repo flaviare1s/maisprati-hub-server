@@ -2,6 +2,7 @@ package com.maisprati.hub.presentation.controller;
 
 import com.maisprati.hub.domain.model.Appointment;
 import com.maisprati.hub.application.service.AppointmentService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+@Tag(name = "Appointments")
 @RestController
 @RequestMapping("/api/appointments")
 @RequiredArgsConstructor

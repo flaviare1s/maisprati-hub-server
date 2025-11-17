@@ -5,6 +5,7 @@ import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.domain.enums.TeamMemberRole;
 import com.maisprati.hub.application.service.TeamService;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Tag(name = "Teams")
 @RestController
 @RequestMapping("/api/teams")
 @RequiredArgsConstructor
