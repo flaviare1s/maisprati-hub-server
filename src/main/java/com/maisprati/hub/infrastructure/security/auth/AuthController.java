@@ -7,6 +7,7 @@ import com.maisprati.hub.infrastructure.security.jwt.JwtProperties;
 import com.maisprati.hub.infrastructure.security.jwt.JwtService;
 import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
 import com.maisprati.hub.presentation.dto.ResetPasswordRequest;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -37,7 +38,7 @@ import java.util.Map;
  *
  * <p>Isso evita a exposição direta de campos do usuário, prevenindo vulnerabilidades de XSS.</p>
  */
-
+@Tag(name = "Authorization")
 @RestController
 @RequestMapping("api/auth")
 @RequiredArgsConstructor
