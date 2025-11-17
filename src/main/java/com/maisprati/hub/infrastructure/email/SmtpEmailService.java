@@ -1,18 +1,20 @@
-package com.maisprati.hub.application.service;
+package com.maisprati.hub.infrastructure.email;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class EmailService {
+@Profile("dev")
+public class SmtpEmailService implements EmailSender {
 	
 	private final JavaMailSender mailSender;
 	
+	@Override
 	public void sendPasswordResetEmail(String to, String token) {
-		// TODO: URL do front que vai renderizar o formulário
 		String resetUrl = "http://localhost:5173/new-password?token=" + token;
 		
 		SimpleMailMessage message = new SimpleMailMessage();
