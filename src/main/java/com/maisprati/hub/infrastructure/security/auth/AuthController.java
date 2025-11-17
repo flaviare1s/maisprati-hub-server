@@ -59,7 +59,7 @@ public class AuthController {
 	/**
 	 * POST api/auth/register - Cadastra um aluno
 	 */
-	@Operation(summary = "Registrar novo aluno", security = {})
+	@Operation(summary = "Registrar novo aluno", description = "🟢 **Público** - Qualquer pessoa pode se registrar como STUDENT")
 	@SecurityRequirements
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "201", description = "Cadastro realizado com sucesso"),
@@ -157,7 +157,7 @@ public class AuthController {
 	/**
 	 * GET api/auth/me - Busca dados do usuário autenticado
 	 */
-	@Operation(summary = "Buscar dados do usuário autenticado")
+	@Operation(summary = "Buscar dados do usuário autenticado", description = "🔒 **Autenticado** - Qualquer usuário logado (ADMIN ou STUDENT)")
 	@GetMapping("/me")
 	public ResponseEntity<?> getCurrentUser() {
 		try {

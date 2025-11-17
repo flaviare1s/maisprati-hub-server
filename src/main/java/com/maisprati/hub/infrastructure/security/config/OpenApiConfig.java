@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
                         3. Os próximos requests para endpoints protegidos usarão o cookie automaticamente
                         
                         ## 📋 Legenda de Permissões:
-                        - **Público**: Não requer autenticação
+                        - 🟢 **Público**: Não requer autenticação
                         - 🔒 **Autenticado**: Requer login (ADMIN ou STUDENT)
                         - 🔐 **Admin**: Apenas administradores
                         
