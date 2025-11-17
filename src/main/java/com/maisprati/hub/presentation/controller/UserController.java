@@ -5,6 +5,7 @@ import com.maisprati.hub.domain.model.User;
 import com.maisprati.hub.infrastructure.security.auth.AuthController;
 import com.maisprati.hub.application.service.UserService;
 import com.maisprati.hub.application.service.TeamService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,6 +21,7 @@ import java.util.Map;
  * Este controller lida com operações internas, com restrição de roles.</p>
  */
 
+@Tag(name = "Users")
 @RestController
 @RequestMapping("api/users")
 @RequiredArgsConstructor

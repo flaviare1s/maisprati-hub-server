@@ -2,6 +2,7 @@ package com.maisprati.hub.presentation.controller;
 
 import com.maisprati.hub.domain.model.Notification;
 import com.maisprati.hub.application.service.NotificationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "Notifications")
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
