@@ -2,6 +2,7 @@ package com.maisprati.hub.presentation.controller;
 
 import com.maisprati.hub.domain.model.Post;
 import com.maisprati.hub.application.service.PostService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+@Tag(name = "Posts")
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor

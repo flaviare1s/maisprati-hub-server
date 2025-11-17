@@ -4,11 +4,13 @@ import com.maisprati.hub.application.service.ProjectProgressService;
 import com.maisprati.hub.domain.enums.PhaseStatus;
 import com.maisprati.hub.domain.model.ProjectPhase;
 import com.maisprati.hub.domain.model.ProjectProgress;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Project Progress")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
