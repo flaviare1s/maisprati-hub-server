@@ -7,6 +7,7 @@ import com.maisprati.hub.infrastructure.security.jwt.JwtProperties;
 import com.maisprati.hub.infrastructure.security.jwt.JwtService;
 import com.maisprati.hub.presentation.dto.ForgotPasswordRequest;
 import com.maisprati.hub.presentation.dto.LoginRequest;
+import com.maisprati.hub.presentation.dto.RegisterStudentRequest;
 import com.maisprati.hub.presentation.dto.ResetPasswordRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -66,11 +67,30 @@ public class AuthController {
 			@ApiResponse(responseCode = "400", description = "Erro ao cadastrar aluno")
 	})
 	@PostMapping("/register")
-	public ResponseEntity<?> registerStudent(@RequestBody User user) {
+	public ResponseEntity<?> registerStudent(@RequestBody RegisterStudentRequest request) {
 		try {
-			userService.registerStudent(user);
+			User newUser = new User();
+
+			newUser.setName(request.getName());
+			newUser.setEmail(request.getEmail());
+			newUser.setPassword(request.getPassword());
+
+			newUser.setType(request.getType());
+			newUser.setWhatsapp(request.getWhatsapp());
+			newUser.setGroupClass(request.getGroupClass());
+
+			newUser.setHasGroup(request.getHasGroup() != null ? request.getHasGroup() : false);
+			newUser.setWantsGroup(request.getWantsGroup() != null ? request.getWantsGroup() : false);
+			newUser.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+
+			newUser.setCodename(request.getCodename());
+			newUser.setAvatar(request.getAvatar());
+			newUser.setEmotionalStatus(request.getEmotionalStatus());
+
+			userService.registerStudent(newUser);
+
 			return ResponseEntity.status(HttpStatus.CREATED)
-				       .body(Map.of("message", "Cadastro realizado com sucesso!"));
+					.body(Map.of("message", "Cadastro realizado com sucesso!"));
 		} catch (RuntimeException e) {
 			log.error("Erro ao cadastrar aluno: {}", e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
