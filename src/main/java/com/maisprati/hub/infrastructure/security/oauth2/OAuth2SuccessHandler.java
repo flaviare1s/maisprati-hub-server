@@ -2,6 +2,8 @@ package com.maisprati.hub.infrastructure.security.oauth2;
 
 import com.maisprati.hub.application.service.UserService;
 import com.maisprati.hub.domain.model.User;
+import com.maisprati.hub.infrastructure.integration.calendar.GoogleCalendarService;
+import com.maisprati.hub.infrastructure.integration.calendar.GoogleTokenService;
 import com.maisprati.hub.infrastructure.security.jwt.JwtProperties;
 import com.maisprati.hub.infrastructure.security.jwt.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -28,6 +31,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 	private final UserService userService;
 	private final JwtService jwtService;
 	private final JwtProperties jwtProperties;
+	private final GoogleTokenService googleTokenService;
+	private final GoogleCalendarService googleCalendarService;
+	private final OAuth2AuthorizedClientService authorizedClientService;
 	
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request,
@@ -47,11 +53,30 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 			return;
 		}
 		
-		// Busca ou cria usuário OAuth2
+		// Cria ou atualiza usuário OAuth2
 		User user = userService.registerOrLoginOAuth2User(email, name, provider);
 		log.info("Usuário autenticado via OAuth2 [{}]: {}", provider, email);
 		
-		// Verifica se o usuário está ativo
+		// Salva refresh token do Google
+		if ("google".equals(provider)) {
+			var authorizedClient = authorizedClientService.loadAuthorizedClient(provider, oauthToken.getName());
+			
+			if (authorizedClient != null && authorizedClient.getRefreshToken() != null) {
+				String refreshToken = authorizedClient.getRefreshToken().getTokenValue();
+				
+				// Gera access token inicial usando o refresh token
+				String accessToken = googleCalendarService.refreshAccessToken(refreshToken);
+				
+				googleTokenService.saveTokens(
+					user.getId(),
+					accessToken,
+					refreshToken,
+					null // opcional: você pode salvar expiry se quiser
+				);
+			}
+		}
+		
+		// Verifica se usuário está ativo
 		if (user.getIsActive() == null || !user.getIsActive()) {
 			String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/login")
 				                   .queryParam("error", "account_inactive")
@@ -65,7 +90,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 		
 		// Gera tokens JWT
 		String accessToken = jwtService.generateAccessToken(user);
-		String refreshToken = jwtService.generateRefreshToken(user);
+		String refreshTokenJwt = jwtService.generateRefreshToken(user);
 		
 		// Define cookies JWT
 		ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
@@ -76,7 +101,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 			                              .maxAge(jwtProperties.getAccessTokenExpiration())
 			                              .build();
 		
-		ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+		ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshTokenJwt)
 			                               .httpOnly(true)
 			                               .secure(jwtProperties.isSecureCookie())
 			                               .sameSite(jwtProperties.isSecureCookie() ? "None" : "Lax")
