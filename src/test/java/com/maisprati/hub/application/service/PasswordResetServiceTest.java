@@ -47,7 +47,7 @@ class PasswordResetServiceTest {
 		
 		// Assert: verificar interações com os mocks
 		verify(resetTokenRepository).save(any()); // Token salvo no repo
-		verify(smtpEmailService).sendPasswordResetEmail(eq(email), anyString()); // Email enviado
+		verify(smtpEmailService).sendPasswordResetEmail(eq(email), anyString(), anyString()); // Email enviado
 	}
 	
 	@Test

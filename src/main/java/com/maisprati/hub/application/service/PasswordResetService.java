@@ -43,7 +43,7 @@ public class PasswordResetService {
 		resetTokenRepository.save(resetToken);
 		log.info("Reset token salvo no banco: tokenHash={} expiresAt={}", tokenHash, resetToken.getExpiresAt());
 		
-		emailSender.sendPasswordResetEmail(email, rawToken);
+		emailSender.sendPasswordResetEmail(user.getEmail(), user.getName(), rawToken);
 		log.info("Reset token DEV (para debug): {}", rawToken);
 	}
 	

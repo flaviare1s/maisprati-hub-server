@@ -85,6 +85,11 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-oauth2-client</artifactId>
     </dependency>
+    <!-- Thymeleaf's TemplateEngine -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
     <!-- JWT dependencies -->
     <dependency>
       <groupId>io.jsonwebtoken</groupId>
