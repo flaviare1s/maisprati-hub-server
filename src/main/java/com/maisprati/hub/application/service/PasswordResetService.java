@@ -2,6 +2,7 @@ package com.maisprati.hub.application.service;
 
 import com.maisprati.hub.domain.model.PasswordResetToken;
 import com.maisprati.hub.domain.model.User;
+import com.maisprati.hub.infrastructure.email.EmailSender;
 import com.maisprati.hub.infrastructure.persistence.repository.PasswordResetTokenRepository;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
 import com.maisprati.hub.infrastructure.util.TokenGenerator;
@@ -19,13 +20,16 @@ import java.time.LocalDateTime;
 public class PasswordResetService {
 	
 	private final UserRepository userRepository;
-	private final EmailService emailService;
+	private final EmailSender emailSender;
 	private final PasswordEncoder passwordEncoder;
 	private final PasswordResetTokenRepository resetTokenRepository;
 	
 	public void generateAndSendToken(String email) {
+		log.info("Gerando token de reset para email={}", email);
+		
 		User user = userRepository.findByEmail(email)
 			            .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+		log.info("Usuário encontrado: id={} email={}", user.getId(), user.getEmail());
 		
 		String rawToken = TokenGenerator.generateToken(32); // 32 bytes ≈ 43 chars
 		String tokenHash = DigestUtils.md5DigestAsHex(rawToken.getBytes());
@@ -37,8 +41,10 @@ public class PasswordResetService {
 		resetToken.setUsed(false);
 		
 		resetTokenRepository.save(resetToken);
-		emailService.sendPasswordResetEmail(email, rawToken);
-		log.info("Reset token DEV: {}", rawToken);
+		log.info("Reset token salvo no banco: tokenHash={} expiresAt={}", tokenHash, resetToken.getExpiresAt());
+		
+		emailSender.sendPasswordResetEmail(email, rawToken);
+		log.info("Reset token DEV (para debug): {}", rawToken);
 	}
 	
 	public void resetPassword(String rawToken, String newPassword) {
