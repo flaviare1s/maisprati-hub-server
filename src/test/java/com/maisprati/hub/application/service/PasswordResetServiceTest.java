@@ -2,6 +2,7 @@ package com.maisprati.hub.application.service;
 
 import com.maisprati.hub.domain.model.PasswordResetToken;
 import com.maisprati.hub.domain.model.User;
+import com.maisprati.hub.infrastructure.email.SmtpEmailService;
 import com.maisprati.hub.infrastructure.persistence.repository.PasswordResetTokenRepository;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ class PasswordResetServiceTest {
 	
 	@Mock private UserRepository userRepository;
 	@Mock private PasswordResetTokenRepository resetTokenRepository;
-	@Mock private EmailService emailService;
+	@Mock private SmtpEmailService smtpEmailService;
 	@Mock private PasswordEncoder passwordEncoder;
 	@InjectMocks private PasswordResetService passwordResetService;
 	
@@ -46,7 +47,7 @@ class PasswordResetServiceTest {
 		
 		// Assert: verificar interações com os mocks
 		verify(resetTokenRepository).save(any()); // Token salvo no repo
-		verify(emailService).sendPasswordResetEmail(eq(email), anyString()); // Email enviado
+		verify(smtpEmailService).sendPasswordResetEmail(eq(email), anyString()); // Email enviado
 	}
 	
 	@Test
