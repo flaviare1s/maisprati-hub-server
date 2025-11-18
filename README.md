@@ -1,4 +1,4 @@
-# +PraTi Hub - Backend
+# +praTiHub - Backend
 
 [![Java](https://img.shields.io/badge/Java-17-red?logo=java)](https://www.java.com/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-green?logo=spring)](https://spring.io/projects/spring-boot)
