@@ -1,4 +1,4 @@
-package com.maisprati.hub.infrastructure.email;
+package com.maisprati.hub.infrastructure.integration.email;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -25,7 +25,7 @@ public class GmailApiEmailSender implements EmailSender {
 	@Value("${GOOGLE_CLIENT_SECRET}")
 	private String clientSecret;
 	
-	@Value("${GMAIL_API_REFRESH_TOKEN}")
+	@Value("${GOOGLE_OAUTH_API_REFRESH_TOKEN}")
 	private String refreshToken;
 	
 	@Value("${SPRING_MAIL_USERNAME}")

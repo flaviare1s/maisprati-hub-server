@@ -2,7 +2,7 @@ package com.maisprati.hub.application.service;
 
 import com.maisprati.hub.domain.model.PasswordResetToken;
 import com.maisprati.hub.domain.model.User;
-import com.maisprati.hub.infrastructure.email.EmailSender;
+import com.maisprati.hub.infrastructure.integration.email.EmailSender;
 import com.maisprati.hub.infrastructure.persistence.repository.PasswordResetTokenRepository;
 import com.maisprati.hub.infrastructure.persistence.repository.UserRepository;
 import com.maisprati.hub.infrastructure.util.TokenGenerator;

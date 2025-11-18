@@ -1,4 +1,4 @@
-package com.maisprati.hub.infrastructure.email;
+package com.maisprati.hub.infrastructure.integration.email;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
