@@ -108,7 +108,7 @@ class AppointmentControllerTest {
 			.thenReturn(sampleAppointment);
 		
 		// Chama endpoint de criação (agora com null no segundo argumento)
-		ResponseEntity<Appointment> response = appointmentController.createAppointment(request, null);
+		ResponseEntity<Appointment> response = appointmentController.createAppointment(request);
 		
 		assertEquals(200, response.getStatusCodeValue());
 		assertNotNull(response.getBody());

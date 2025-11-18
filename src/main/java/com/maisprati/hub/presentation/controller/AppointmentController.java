@@ -43,10 +43,7 @@ public class AppointmentController {
 	
 	// Criar agendamento com @RequestBody para receber JSON
 	@PostMapping
-	public ResponseEntity<Appointment> createAppointment(
-		@RequestBody CreateAppointmentRequest request,
-		@AuthenticationPrincipal OAuth2User oauthUser // pega o usuário logado via OAuth2
-	) {
+	public ResponseEntity<Appointment> createAppointment(@RequestBody CreateAppointmentRequest request) {
 		Appointment appointment = appointmentService.createAppointment(
 			request.getStudentId(),
 			request.getAdminId(),
@@ -57,7 +54,9 @@ public class AppointmentController {
 		
 		// Tenta criar evento no Google Calendar
 		try {
-			calendarIntegrationService.agendarEvento(oauthUser, appointment);
+			// Passa o ID para buscar o token do Google
+			String userId = request.getStudentId();
+			calendarIntegrationService.agendarEvento(userId, appointment);
 		} catch (Exception e) {
 			// Se falhar, não bloqueia a criação do agendamento
 			log.warn("Falha ao criar evento no Google Calendar: {}", e.getMessage());
